@@ -28,22 +28,39 @@ interface OutlineData {
   tone: string;
 }
 
+interface Draft {
+  id: string;
+  title: string | null;
+  subtitle: string | null;
+  content: string | null;
+  word_count: number;
+  thumbnail_url: string | null;
+  status: 'draft' | 'final' | 'published';
+}
+
 interface FinalDraftScreenProps {
   onRestart: () => void;
   onComplete: () => void;
   outlineData?: OutlineData | null;
+  draft?: Draft | null;
 }
 
 export function FinalDraftScreen({
   onRestart,
   onComplete,
   outlineData,
+  draft,
 }: FinalDraftScreenProps) {
   const [showAiTooltip, setShowAiTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(draft?.thumbnail_url || null);
   const [isGeneratingThumb, setIsGeneratingThumb] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
+
+  // Use draft content if available
+  const draftTitle = draft?.title || "2024년 생성형 AI 트렌드와 미래 전망";
+  const draftSubtitle = draft?.subtitle || "급변하는 AI 기술의 흐름을 짚어보고, 비즈니스에 미칠 영향을 심층 분석합니다.";
+  const draftWordCount = draft?.word_count || 1240;
 
   // Handle text selection for AI tooltip
   useEffect(() => {
@@ -186,12 +203,11 @@ export function FinalDraftScreen({
                 suppressContentEditableWarning
               >
                 <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
-                  2024년 생성형 AI 트렌드와 미래 전망
+                  {draftTitle}
                 </h1>
 
                 <p className="text-gray-500 text-xl font-light mb-8">
-                  급변하는 AI 기술의 흐름을 짚어보고, 비즈니스에 미칠 영향을
-                  심층 분석합니다.
+                  {draftSubtitle}
                 </p>
 
                 {thumbnailUrl && (
@@ -359,7 +375,7 @@ export function FinalDraftScreen({
                 <div>
                   <div className="flex justify-between text-sm mb-1.5">
                     <span className="text-gray-600">글자 수</span>
-                    <span className="font-bold text-gray-900">1,240자</span>
+                    <span className="font-bold text-gray-900">{draftWordCount.toLocaleString()}자</span>
                   </div>
                   <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-gray-400 rounded-full w-[40%]" />

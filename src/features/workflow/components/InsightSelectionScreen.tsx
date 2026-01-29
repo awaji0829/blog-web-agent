@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RotateCw, Lightbulb, Plus, ChevronRight } from 'lucide-react';
+import { RotateCw, Lightbulb, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { InsightCard, InsightData } from './InsightCard';
 
-// Mock Data
+// Mock Data (fallback when no insights provided)
 const MOCK_INSIGHTS: InsightData[] = [
   {
     id: '1',
@@ -40,16 +40,19 @@ const MOCK_INSIGHTS: InsightData[] = [
 interface InsightSelectionScreenProps {
   onNext: (selectedInsights: InsightData[]) => void;
   onBack?: () => void;
+  insights?: InsightData[];
+  isLoading?: boolean;
 }
 
-export function InsightSelectionScreen({ onNext, onBack }: InsightSelectionScreenProps) {
+export function InsightSelectionScreen({ onNext, onBack, insights, isLoading }: InsightSelectionScreenProps) {
+  // Use provided insights or fallback to mock data
+  const displayInsights = insights && insights.length > 0 ? insights : MOCK_INSIGHTS;
+
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isIdeaInputOpen, setIsIdeaInputOpen] = useState(false);
   const [customIdea, setCustomIdea] = useState("");
 
   const toggleSelection = (id: string) => {
-    // Single selection logic for now based on UI "Select this topic", but prompt says "Select one or multiple".
-    // I will support multiple.
     setSelectedIds(prev => {
       if (prev.includes(id)) {
         return prev.filter(item => item !== id);
@@ -62,10 +65,10 @@ export function InsightSelectionScreen({ onNext, onBack }: InsightSelectionScree
   return (
     <div className="flex flex-col h-full w-full bg-gray-50/50">
       <ProgressBar currentStep={3} />
-      
+
       <div className="flex-1 overflow-y-auto pb-20">
         <div className="max-w-6xl mx-auto px-4 md:px-8 space-y-8">
-          
+
           {/* Header */}
           <div className="text-center space-y-3 py-4">
             <h2 className="text-3xl font-bold text-gray-900">
@@ -78,7 +81,7 @@ export function InsightSelectionScreen({ onNext, onBack }: InsightSelectionScree
 
           {/* Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {MOCK_INSIGHTS.map((insight) => (
+            {displayInsights.map((insight) => (
               <InsightCard
                 key={insight.id}
                 data={insight}
@@ -95,12 +98,12 @@ export function InsightSelectionScreen({ onNext, onBack }: InsightSelectionScree
                 <RotateCw className="w-4 h-4" />
                 다른 인사이트 추천받기
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => setIsIdeaInputOpen(!isIdeaInputOpen)}
                 className={cn(
                   "flex items-center gap-2 px-6 py-3 rounded-full border transition-all shadow-sm font-medium",
-                  isIdeaInputOpen 
+                  isIdeaInputOpen
                     ? "bg-blue-50 text-blue-700 border-blue-200"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-orange-600 hover:border-orange-100"
                 )}
@@ -129,11 +132,10 @@ export function InsightSelectionScreen({ onNext, onBack }: InsightSelectionScree
                         className="flex-1 text-lg p-2 bg-transparent border-b-2 border-gray-100 focus:border-blue-500 focus:outline-none transition-colors"
                         autoFocus
                       />
-                      <button 
+                      <button
                          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                          disabled={!customIdea.trim()}
                          onClick={() => {
-                            // Add logic
                             console.log("Add custom idea");
                          }}
                       >
@@ -146,26 +148,10 @@ export function InsightSelectionScreen({ onNext, onBack }: InsightSelectionScree
             </AnimatePresence>
           </div>
 
-          {/* Next Button Floating or Fixed? 
-             The prompt didn't strictly specify a global "Next" button at the bottom, 
-             but usually, after selection, you need to proceed. 
-             "진행할 수 있습니다" implies an action. 
-             However, the "Select this topic" button on the card might act as the trigger or just a toggle.
-             Given "Select one or multiple", we probably need a "Proceed with selected" button.
-             
-             Wait, prompt says: 
-             "✅ 이 주제로 선택" 버튼 (카드의 메인 액션 버튼).
-             
-             If I can select multiple, I probably need a main CTA at the bottom right or center.
-             Or maybe the card button IS the trigger? "Select this topic" -> proceeds immediately? 
-             No, "one or multiple" implies batch selection.
-             
-             Let's add a "Proceed" button that appears when at least one is selected.
-          */}
-          
+          {/* Floating Next Button */}
           <AnimatePresence>
             {selectedIds.length > 0 && (
-              <motion.div 
+              <motion.div
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
@@ -173,15 +159,25 @@ export function InsightSelectionScreen({ onNext, onBack }: InsightSelectionScree
               >
                 <button
                   onClick={() => {
-                    const selected = MOCK_INSIGHTS.filter(insight => selectedIds.includes(insight.id));
+                    const selected = displayInsights.filter(insight => selectedIds.includes(insight.id));
                     onNext(selected);
                   }}
-                  className="bg-gray-900 text-white pl-8 pr-6 py-4 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 text-lg font-bold"
+                  disabled={isLoading}
+                  className="bg-gray-900 text-white pl-8 pr-6 py-4 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 text-lg font-bold disabled:opacity-70 disabled:hover:scale-100"
                 >
-                  {selectedIds.length}개의 주제로 진행하기
-                  <div className="bg-white/20 rounded-full p-1">
-                    <ChevronRight className="w-5 h-5" />
-                  </div>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      처리 중...
+                    </>
+                  ) : (
+                    <>
+                      {selectedIds.length}개의 주제로 진행하기
+                      <div className="bg-white/20 rounded-full p-1">
+                        <ChevronRight className="w-5 h-5" />
+                      </div>
+                    </>
+                  )}
                 </button>
               </motion.div>
             )}

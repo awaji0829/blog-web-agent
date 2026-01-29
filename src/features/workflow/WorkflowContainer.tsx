@@ -1,94 +1,142 @@
-import React, { useState } from 'react';
 import { ResourceInput } from './components/ResourceInput';
 import { AnalysisLoading } from './components/AnalysisLoading';
 import { InsightSelectionScreen } from './components/InsightSelectionScreen';
 import { DeepResearchLoading } from './components/DeepResearchLoading';
 import { OutlineEditor } from './components/OutlineEditor';
 import { FinalDraftScreen } from './components/FinalDraftScreen';
-import type {
-  WorkflowStep,
-  ResourceInputData,
-  InsightData,
-  OutlineData,
-} from './types';
+import { useWorkflow } from './hooks/useWorkflow';
+import type { ResourceInputData, InsightData, OutlineData, Insight } from './types';
 
 export function WorkflowContainer() {
-  const [step, setStep] = useState<WorkflowStep>('input');
+  const workflow = useWorkflow();
 
-  // 워크플로우 데이터 상태
-  const [resourceInput, setResourceInput] = useState<ResourceInputData | null>(null);
-  const [selectedInsights, setSelectedInsights] = useState<InsightData[]>([]);
-  const [outlineData, setOutlineData] = useState<OutlineData | null>(null);
-
-  const handleStartAnalysis = (data: ResourceInputData) => {
-    setResourceInput(data);
-    setStep('analyzing');
-    // Simulate analysis delay
-    setTimeout(() => {
-      setStep('selection');
-    }, 3000);
-  };
-
-  const handleSelectionNext = (insights: InsightData[]) => {
-    setSelectedInsights(insights);
-    setStep('researching');
-  };
-
-  const handleResearchComplete = () => {
-    setStep('outline');
-  };
-
-  const handleOutlineBack = () => {
-    setStep('selection');
-  };
-
-  const handleFinalDraft = (data: OutlineData) => {
-    setOutlineData(data);
-    setStep('final');
-  };
-
-  const handleRestart = () => {
-    if (confirm('정말로 처음부터 다시 시작하시겠습니까?')) {
-      setResourceInput(null);
-      setSelectedInsights([]);
-      setOutlineData(null);
-      setStep('input');
+  // ResourceInput에서 분석 시작
+  const handleStartAnalysis = async (data: ResourceInputData) => {
+    try {
+      await workflow.startAnalysis(data);
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      // 에러 시에도 selection 단계로 이동 (mock 데이터로 fallback)
+      workflow.setStep('selection');
     }
   };
 
-  const handleComplete = () => {
-    alert('발행이 완료되었습니다! (데모 종료)');
-    setResourceInput(null);
-    setSelectedInsights([]);
-    setOutlineData(null);
-    setStep('input');
+  // InsightSelectionScreen에서 인사이트 선택 후 진행
+  const handleSelectionNext = async (insights: InsightData[]) => {
+    try {
+      const insightIds = insights.map(i => i.id);
+      await workflow.selectInsightsAndResearch(insightIds);
+    } catch (err) {
+      console.error('Research failed:', err);
+      // 에러 시에도 outline 단계로 이동
+      workflow.setStep('outline');
+    }
   };
+
+  // DeepResearchLoading 완료 (자동으로 outline 단계로 이동)
+  const handleResearchComplete = () => {
+    workflow.setStep('outline');
+  };
+
+  // OutlineEditor에서 뒤로 가기
+  const handleOutlineBack = () => {
+    workflow.setStep('selection');
+  };
+
+  // OutlineEditor에서 초안 작성 시작
+  const handleFinalDraft = async (data: OutlineData) => {
+    try {
+      // 아웃라인 업데이트 후 초안 작성
+      if (workflow.outline) {
+        await workflow.updateOutline({
+          sections: data.sections,
+          tone: data.tone,
+        });
+      }
+      await workflow.writeDraft();
+    } catch (err) {
+      console.error('Draft writing failed:', err);
+      workflow.setStep('final');
+    }
+  };
+
+  // 처음부터 다시 시작
+  const handleRestart = () => {
+    if (confirm('정말로 처음부터 다시 시작하시겠습니까?')) {
+      workflow.restart();
+    }
+  };
+
+  // 발행 완료
+  const handleComplete = () => {
+    alert('발행이 완료되었습니다!');
+    workflow.restart();
+  };
+
+  // Insight를 InsightData로 변환 (기존 컴포넌트 호환)
+  const insightsAsData: InsightData[] = workflow.insights.map((insight: Insight) => ({
+    id: insight.id,
+    title: insight.title,
+    summary: insight.potential_angle || insight.signal || '',
+    targetAudience: workflow.session?.target_audience || '',
+    keywords: insight.tags || [],
+  }));
+
+  // Outline을 OutlineData로 변환
+  const outlineAsData: OutlineData | null = workflow.outline
+    ? {
+        sections: workflow.outline.sections,
+        tone: workflow.outline.tone,
+      }
+    : null;
 
   return (
     <div className="h-full w-full">
-      {step === 'input' && (
+      {workflow.step === 'input' && (
         <ResourceInput onStartAnalysis={handleStartAnalysis} />
       )}
-      {step === 'analyzing' && <AnalysisLoading />}
-      {step === 'selection' && (
-        <InsightSelectionScreen onNext={handleSelectionNext} />
+
+      {workflow.step === 'analyzing' && <AnalysisLoading />}
+
+      {workflow.step === 'selection' && (
+        <InsightSelectionScreen
+          onNext={handleSelectionNext}
+          insights={insightsAsData}
+          isLoading={workflow.isLoading}
+        />
       )}
-      {step === 'researching' && (
+
+      {workflow.step === 'researching' && (
         <DeepResearchLoading onComplete={handleResearchComplete} />
       )}
-      {step === 'outline' && (
+
+      {(workflow.step === 'outline' || workflow.step === 'writing') && (
         <OutlineEditor
           onBack={handleOutlineBack}
           onNext={handleFinalDraft}
-          selectedInsights={selectedInsights}
+          selectedInsights={insightsAsData.filter(i =>
+            workflow.insights.find(wi => wi.id === i.id && wi.status === 'selected')
+          )}
+          outline={outlineAsData}
+          isLoading={workflow.isLoading}
         />
       )}
-      {step === 'final' && (
+
+      {workflow.step === 'final' && (
         <FinalDraftScreen
           onRestart={handleRestart}
           onComplete={handleComplete}
-          outlineData={outlineData}
+          outlineData={outlineAsData}
+          draft={workflow.draft}
         />
+      )}
+
+      {/* 에러 표시 */}
+      {workflow.error && (
+        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg max-w-md">
+          <p className="font-medium">오류 발생</p>
+          <p className="text-sm">{workflow.error}</p>
+        </div>
       )}
     </div>
   );
