@@ -6,6 +6,7 @@ import type {
   Research,
   Outline,
   Draft,
+  SeoAnalysisResult,
 } from '@/features/workflow/types';
 
 // ============================================
@@ -281,6 +282,67 @@ export async function publishDraft(draftId: string) {
   return updateDraft(draftId, { status: 'published' });
 }
 
+export async function getAllDrafts() {
+  const { data, error } = await supabase
+    .from('drafts')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Draft[];
+}
+
+export async function getDraftById(draftId: string) {
+  const { data, error } = await supabase
+    .from('drafts')
+    .select('*')
+    .eq('id', draftId)
+    .single();
+
+  if (error) throw error;
+  return data as Draft;
+}
+
+export async function deleteDraft(draftId: string) {
+  const { error } = await supabase
+    .from('drafts')
+    .delete()
+    .eq('id', draftId);
+
+  if (error) throw error;
+}
+
+// ============================================
+// SEO Analysis API
+// ============================================
+
+export async function analyzeSeo(draftId: string, keywords?: string[]) {
+  const { data, error } = await supabase.functions.invoke('analyze-seo', {
+    body: {
+      draft_id: draftId,
+      keywords,
+    },
+  });
+
+  if (error) throw error;
+  return data.analysis as SeoAnalysisResult;
+}
+
+export async function getSeoMetrics(draftId: string) {
+  const { data, error } = await supabase
+    .from('drafts')
+    .select('seo_metrics, meta_description, primary_keywords')
+    .eq('id', draftId)
+    .single();
+
+  if (error) throw error;
+  return {
+    seo_metrics: data.seo_metrics,
+    meta_description: data.meta_description,
+    primary_keywords: data.primary_keywords,
+  };
+}
+
 // ============================================
 // Combined Workflow API
 // ============================================
@@ -317,6 +379,13 @@ export const blogApi = {
   getDraft,
   updateDraft,
   publishDraft,
+  getAllDrafts,
+  getDraftById,
+  deleteDraft,
+
+  // SEO
+  analyzeSeo,
+  getSeoMetrics,
 };
 
 export default blogApi;

@@ -222,6 +222,11 @@ export function useWorkflow() {
     setStep(step);
   }, []);
 
+  // 초안 직접 설정 (저장된 초안 보기용)
+  const setDraft = useCallback((draft: Draft | null) => {
+    setState(prev => ({ ...prev, draft }));
+  }, []);
+
   return {
     // State
     ...state,
@@ -236,6 +241,7 @@ export function useWorkflow() {
     restart,
     goToStep,
     setStep,
+    setDraft,
   };
 }
 

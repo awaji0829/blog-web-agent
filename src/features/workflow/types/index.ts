@@ -136,6 +136,55 @@ export interface OutlineSection {
   keywords: string[];
 }
 
+// SEO 분석 메트릭
+export interface SeoMetrics {
+  overall_score: number;
+  keyword_density: {
+    score: number;
+    value: number;
+    status: 'good' | 'low' | 'high';
+  };
+  readability: {
+    score: number;
+    avg_sentence_length: number;
+    avg_paragraph_length: number;
+    status: 'good' | 'needs_improvement';
+  };
+  content_length: {
+    score: number;
+    word_count: number;
+    char_count: number;
+    status: 'good' | 'short' | 'long';
+  };
+  heading_structure: {
+    score: number;
+    h2_count: number;
+    h3_count: number;
+    has_keyword_in_headings: boolean;
+  };
+  title_optimization: {
+    score: number;
+    length: number;
+    has_keyword: boolean;
+    status: 'good' | 'too_short' | 'too_long';
+  };
+}
+
+export interface SeoSuggestion {
+  priority: 'high' | 'medium' | 'low';
+  message: string;
+}
+
+export interface SeoAnalysisResult {
+  overall_score: number;
+  metrics: SeoMetrics;
+  suggestions: SeoSuggestion[];
+  generated_meta: {
+    description: string;
+    keywords: string[];
+  };
+}
+
 // 최종 초안
 export interface Draft {
   id: string;
@@ -145,8 +194,12 @@ export interface Draft {
   subtitle: string | null;
   content: string | null;
   word_count: number;
+  char_count: number | null;
   thumbnail_url: string | null;
   status: 'draft' | 'final' | 'published';
+  seo_metrics: SeoMetrics | null;
+  meta_description: string | null;
+  primary_keywords: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -196,6 +249,11 @@ export interface GenerateOutlineResponse {
 
 export interface WriteDraftResponse {
   draft: Draft;
+}
+
+export interface AnalyzeSeoResponse {
+  analysis: SeoAnalysisResult;
+  draft_id: string;
 }
 
 // ============================================

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import {
   FileText,
@@ -12,8 +13,18 @@ import {
   ExternalLink,
   BarChart3,
   CheckCircle2,
+  PenTool,
+  Lightbulb,
+  AlertCircle,
+  TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { ProgressBar } from "@/components/shared/ProgressBar";
+import { analyzeSeo } from "@/lib/api";
+import type { SeoAnalysisResult, SeoMetrics } from "@/features/workflow/types";
+
+// Use SeoAnalysisResult for SEO state
+type SeoAnalysisState = SeoAnalysisResult;
 
 interface OutlineSection {
   id: string;
@@ -34,8 +45,12 @@ interface Draft {
   subtitle: string | null;
   content: string | null;
   word_count: number;
+  char_count: number | null;
   thumbnail_url: string | null;
-  status: 'draft' | 'final' | 'published';
+  status: "draft" | "final" | "published";
+  seo_metrics: SeoMetrics | null;
+  meta_description: string | null;
+  primary_keywords: string[] | null;
 }
 
 interface FinalDraftScreenProps {
@@ -45,22 +60,222 @@ interface FinalDraftScreenProps {
   draft?: Draft | null;
 }
 
+const LOADING_TEXTS = [
+  "개요를 바탕으로 블로그 글을 작성하고 있습니다...",
+  "각 섹션의 내용을 풍부하게 채워가고 있습니다...",
+  "논리적 흐름과 가독성을 다듬고 있습니다...",
+  "전문적이면서도 읽기 쉬운 문체로 마무리하고 있습니다...",
+];
+
+// Loading Screen Component
+function DraftLoadingScreen() {
+  const [textIndex, setTextIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const textInterval = setInterval(() => {
+      setTextIndex((prev) => (prev + 1) % LOADING_TEXTS.length);
+    }, 4000);
+
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) return 95;
+        return Math.min(prev + Math.random() * 1.5, 95);
+      });
+    }, 150);
+
+    return () => {
+      clearInterval(textInterval);
+      clearInterval(progressInterval);
+    };
+  }, []);
+
+  return (
+    <div className="flex flex-col h-full w-full bg-gray-50/50">
+      <ProgressBar currentStep={6} />
+
+      <div className="flex-1 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+        {/* Central Animation */}
+        <div className="relative mb-12">
+          {/* Pulsing Circles */}
+          <motion.div
+            className="absolute inset-0 bg-green-100 rounded-full"
+            animate={{ scale: [1, 2], opacity: [0.5, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          <motion.div
+            className="absolute inset-0 bg-green-200 rounded-full"
+            animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+            transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+          />
+
+          {/* Main Icon Circle */}
+          <div className="relative w-32 h-32 bg-white rounded-full shadow-xl flex items-center justify-center z-10">
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <PenTool className="w-16 h-16 text-green-600" />
+            </motion.div>
+          </div>
+
+          {/* Progress Ring */}
+          <svg className="absolute top-0 left-0 w-32 h-32 -rotate-90 z-20 pointer-events-none">
+            <circle
+              cx="64"
+              cy="64"
+              r="62"
+              fill="none"
+              stroke="#E5E7EB"
+              strokeWidth="4"
+            />
+            <circle
+              cx="64"
+              cy="64"
+              r="62"
+              fill="none"
+              stroke="#16A34A"
+              strokeWidth="4"
+              strokeDasharray={389.5}
+              strokeDashoffset={389.5 * (1 - progress / 100)}
+              strokeLinecap="round"
+              className="transition-all duration-300 ease-out"
+            />
+          </svg>
+        </div>
+
+        {/* Dynamic Text */}
+        <div className="text-center space-y-4 max-w-lg z-10">
+          <h2 className="text-2xl font-bold text-gray-900">
+            초안을 작성하고 있습니다
+          </h2>
+
+          <div className="h-8 relative">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={textIndex}
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -10, opacity: 0 }}
+                className="text-lg text-gray-600 absolute w-full left-0 right-0"
+              >
+                {LOADING_TEXTS[textIndex]}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Tip Box */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2 }}
+          className="mt-16 bg-green-50 border border-green-100 px-6 py-4 rounded-xl flex items-center gap-3 max-w-md shadow-sm z-10"
+        >
+          <div className="bg-green-100 p-2 rounded-full">
+            <Lightbulb className="w-5 h-5 text-green-600" />
+          </div>
+          <p className="text-sm text-green-800 font-medium">
+            Tip: 초안이 완성되면 직접 수정하거나 AI 문장 다듬기를 사용할 수 있습니다.
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
 export function FinalDraftScreen({
   onRestart,
   onComplete,
   outlineData,
   draft,
 }: FinalDraftScreenProps) {
+  // Show loading screen if no draft data yet
+  if (!draft) {
+    return <DraftLoadingScreen />;
+  }
+
+  // If draft exists but has no content, show loading (still being written)
+  if (!draft.content) {
+    return <DraftLoadingScreen />;
+  }
+
+  // Ensure draft has required fields before rendering
+  if (!draft.id) {
+    console.error('Draft missing required id field:', draft);
+    return <DraftLoadingScreen />;
+  }
+
+  return (
+    <FinalDraftContent
+      onRestart={onRestart}
+      onComplete={onComplete}
+      draft={draft}
+    />
+  );
+}
+
+// Separated content component to avoid hooks issues
+function FinalDraftContent({
+  onRestart,
+  onComplete,
+  draft,
+}: {
+  onRestart: () => void;
+  onComplete: () => void;
+  draft: Draft;
+}) {
   const [showAiTooltip, setShowAiTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(draft?.thumbnail_url || null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(
+    draft.thumbnail_url || null
+  );
   const [isGeneratingThumb, setIsGeneratingThumb] = useState(false);
+  const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysisState | null>(null);
+  const [isSeoLoading, setIsSeoLoading] = useState(false);
+  const [seoError, setSeoError] = useState<string | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Use draft content if available
-  const draftTitle = draft?.title || "2024년 생성형 AI 트렌드와 미래 전망";
-  const draftSubtitle = draft?.subtitle || "급변하는 AI 기술의 흐름을 짚어보고, 비즈니스에 미칠 영향을 심층 분석합니다.";
-  const draftWordCount = draft?.word_count || 1240;
+  const draftTitle = draft.title || "블로그 제목";
+  const draftSubtitle = draft.subtitle || "";
+  const draftWordCount = draft.word_count || 0;
+  const draftCharCount = draft.char_count || 0;
+
+  // Fetch SEO analysis when draft is loaded
+  useEffect(() => {
+    const fetchSeoAnalysis = async () => {
+      if (!draft.id) return;
+
+      // If we already have SEO metrics from the draft, use them
+      if (draft.seo_metrics) {
+        setSeoAnalysis({
+          overall_score: draft.seo_metrics.overall_score || 0,
+          metrics: draft.seo_metrics,
+          suggestions: [],
+          generated_meta: {
+            description: draft.meta_description || '',
+            keywords: draft.primary_keywords || [],
+          },
+        });
+        return;
+      }
+
+      setIsSeoLoading(true);
+      setSeoError(null);
+
+      try {
+        const analysis = await analyzeSeo(draft.id, draft.primary_keywords || undefined);
+        setSeoAnalysis(analysis);
+      } catch (err) {
+        console.error('SEO analysis failed:', err);
+        setSeoError('SEO 분석에 실패했습니다.');
+      } finally {
+        setIsSeoLoading(false);
+      }
+    };
+
+    fetchSeoAnalysis();
+  }, [draft.id, draft.seo_metrics, draft.meta_description, draft.primary_keywords]);
 
   // Handle text selection for AI tooltip
   useEffect(() => {
@@ -74,7 +289,6 @@ export function FinalDraftScreen({
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
-        // Calculate position relative to viewport but centered above selection
         setTooltipPos({
           x: rect.left + rect.width / 2,
           y: rect.top - 10,
@@ -86,7 +300,7 @@ export function FinalDraftScreen({
     };
 
     document.addEventListener("mouseup", handleSelection);
-    document.addEventListener("keyup", handleSelection); // For keyboard selection
+    document.addEventListener("keyup", handleSelection);
 
     return () => {
       document.removeEventListener("mouseup", handleSelection);
@@ -96,7 +310,6 @@ export function FinalDraftScreen({
 
   const generateThumbnail = () => {
     setIsGeneratingThumb(true);
-    // Simulate API call
     setTimeout(() => {
       setThumbnailUrl(
         "https://images.unsplash.com/photo-1646583288948-24548aedffd8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwdGVjaG5vbG9neSUyMGJsb2clMjB0aHVtYm5haWx8ZW58MXx8fHwxNzY4Nzg3OTc0fDA&ixlib=rb-4.1.0&q=80&w=1080"
@@ -107,12 +320,15 @@ export function FinalDraftScreen({
 
   const [copySuccess, setCopySuccess] = useState(false);
 
-  // 에디터 내용을 Markdown으로 변환
   const getMarkdownContent = () => {
+    // If we have draft content, return it directly (it's already markdown)
+    if (draft.content) {
+      return draft.content;
+    }
+
     const editor = editorRef.current;
     if (!editor) return "";
 
-    // 에디터의 innerHTML을 간단한 Markdown으로 변환
     let html = editor.innerHTML;
     let markdown = html
       .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
@@ -140,7 +356,6 @@ export function FinalDraftScreen({
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
-      // Fallback for older browsers
       const textarea = document.createElement("textarea");
       textarea.value = markdown;
       textarea.style.position = "fixed";
@@ -171,6 +386,26 @@ export function FinalDraftScreen({
     window.open("https://docs.google.com/document/create", "_blank");
   };
 
+  // Convert markdown content to HTML for display
+  const renderContent = () => {
+    if (!draft.content) return null;
+
+    // Simple markdown to HTML conversion for display
+    const html = draft.content
+      .replace(/^# (.+)$/gm, '<h1 class="text-4xl font-extrabold text-gray-900 mb-4">$1</h1>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold text-gray-800 mt-8 mb-4">$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold text-gray-800 mt-6 mb-3">$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">$1</blockquote>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, '<ul class="list-disc list-inside space-y-1 my-4">$&</ul>')
+      .replace(/\n\n/g, '</p><p class="my-4">')
+      .replace(/^(?!<[h|u|b|l])(.+)$/gm, '<p class="my-4">$1</p>');
+
+    return { __html: html };
+  };
+
   return (
     <div className="flex flex-col h-full w-full bg-gray-50/50">
       <ProgressBar currentStep={6} />
@@ -181,7 +416,7 @@ export function FinalDraftScreen({
           className="fixed z-50 transform -translate-x-1/2 -translate-y-full mb-2 bg-gray-900 text-white text-xs py-1.5 px-3 rounded-lg shadow-xl flex items-center gap-2 animate-in fade-in zoom-in duration-150 cursor-pointer hover:bg-black"
           style={{ left: tooltipPos.x, top: tooltipPos.y }}
           onMouseDown={(e) => {
-            e.preventDefault(); // Prevent losing selection
+            e.preventDefault();
             alert("AI 문장 다듬기 기능이 실행됩니다.");
           }}
         >
@@ -195,89 +430,31 @@ export function FinalDraftScreen({
           {/* Left Column: Editor View */}
           <div className="flex-1 min-w-0">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 min-h-[800px] p-12 relative">
-              {/* Paper-like styling */}
-              <div
-                ref={editorRef}
-                contentEditable
-                className="max-w-3xl mx-auto outline-none prose prose-lg prose-blue focus:prose-headings:text-blue-600"
-                suppressContentEditableWarning
-              >
-                <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
-                  {draftTitle}
-                </h1>
-
-                <p className="text-gray-500 text-xl font-light mb-8">
-                  {draftSubtitle}
-                </p>
-
-                {thumbnailUrl && (
-                  <img
-                    src={thumbnailUrl}
-                    alt="Blog Thumbnail"
-                    className="w-full h-64 object-cover rounded-xl mb-8 shadow-sm"
-                  />
-                )}
-
-                <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">
-                  1. 서론: 생성형 AI의 등장과 충격
-                </h2>
-                <p>
-                  2023년 ChatGPT의 등장으로 시작된 생성형 AI 혁명은 산업 전반에
-                  큰 파장을 일으켰습니다. 단순한 챗봇을 넘어, 이제는 코딩,
-                  디자인, 데이터 분석 등 전문 영역까지 그 영향력을 확대하고
-                  있습니다. 본 글에서는 이러한 변화의 흐름을 짚어보고, 2024년에
-                  우리가 주목해야 할 핵심 트렌드를 분석합니다.
-                </p>
-
-                <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">
-                  2. 2024년 주요 기술 트렌드
-                </h2>
-                <p>
-                  올해의 핵심 키워드는 단연{" "}
-                  <strong>'멀티모달(Multi-modal)'</strong>과{" "}
-                  <strong>'온디바이스 AI(On-device AI)'</strong>입니다. 텍스트를
-                  넘어 이미지, 영상, 음성을 동시에 처리하는 멀티모달 모델은 AI의
-                  활용성을 극대화하고 있습니다.
-                </p>
-                <blockquote>
-                  "AI는 더 이상 클라우드 서버에만 존재하지 않습니다. 당신의
-                  주머니 속 스마트폰, 손목 위의 워치에서 실시간으로 작동하게 될
-                  것입니다."
-                </blockquote>
-                <p>
-                  특히 스마트폰 제조사들은 NPU 성능을 대폭 강화하여, 인터넷 연결
-                  없이도 고성능 AI 기능을 사용할 수 있는 환경을 구축하고
-                  있습니다.
-                </p>
-
-                <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">
-                  3. 비즈니스 적용 사례 분석
-                </h2>
-                <p>
-                  마케팅 분야에서는 개인화된 콘텐츠 생성에 AI가 적극 도입되고
-                  있습니다. 고객 데이터 분석을 통해 타겟 오디언스에게 최적화된
-                  카피라이팅을 수 초 만에 생성하며, 이는 기존 방식 대비{" "}
-                  <strong>300% 이상의 효율</strong>을 보여줍니다.
-                </p>
-                <ul>
-                  <li>고객 CS 자동화: 24시간 응대 가능한 AI 상담원</li>
-                  <li>
-                    데이터 분석: 복잡한 엑셀 데이터를 자연어로 질의 및 시각화
-                  </li>
-                  <li>코드 어시스턴트: 개발 생산성 50% 향상</li>
-                </ul>
-
-                <h2 className="text-2xl font-bold text-gray-800 mt-8 mb-4">
-                  4. 결론: 변화에 대처하는 자세
-                </h2>
-                <p>
-                  AI는 결국 도구입니다. 이를 두려워하기보다는, 내 업무에 어떻게
-                  접목시켜
-                  <strong>'증강된 인간(Augmented Human)'</strong>이 될 것인가를
-                  고민해야 합니다. 지속적인 학습과 열린 마음가짐이 그 어느
-                  때보다 필요한 시점입니다.
-                </p>
-              </div>
+              {draft.content ? (
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  className="max-w-3xl mx-auto outline-none prose prose-lg prose-blue focus:prose-headings:text-blue-600"
+                  suppressContentEditableWarning
+                  dangerouslySetInnerHTML={renderContent() || undefined}
+                />
+              ) : (
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  className="max-w-3xl mx-auto outline-none prose prose-lg prose-blue focus:prose-headings:text-blue-600"
+                  suppressContentEditableWarning
+                >
+                  <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
+                    {draftTitle}
+                  </h1>
+                  {draftSubtitle && (
+                    <p className="text-gray-500 text-xl font-light mb-8">
+                      {draftSubtitle}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -344,44 +521,175 @@ export function FinalDraftScreen({
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-green-600" />
                 SEO&GEO 가독성 분석
+                {isSeoLoading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
               </h3>
 
-              <div className="space-y-5">
-                {/* Score 1 */}
-                <div>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-gray-600">키워드 밀도</span>
-                    <span className="font-bold text-green-600">
-                      좋음 (2.4%)
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-green-500 rounded-full w-[70%]" />
-                  </div>
+              {seoError ? (
+                <div className="flex items-center gap-2 text-amber-600 text-sm py-2">
+                  <AlertCircle className="w-4 h-4" />
+                  {seoError}
                 </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Overall Score */}
+                  {seoAnalysis && (
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">종합 SEO 점수</span>
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-green-600" />
+                          <span className="text-2xl font-bold text-green-600">
+                            {seoAnalysis.overall_score}점
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                {/* Score 2 */}
-                <div>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-gray-600">가독성 점수</span>
-                    <span className="font-bold text-blue-600">우수 (88점)</span>
+                  {/* Keyword Density */}
+                  <div>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-600">키워드 밀도</span>
+                      <span className={cn(
+                        "font-bold",
+                        seoAnalysis?.metrics?.keyword_density?.status === 'good' ? "text-green-600" :
+                        seoAnalysis?.metrics?.keyword_density?.status === 'low' ? "text-amber-600" : "text-red-600"
+                      )}>
+                        {seoAnalysis?.metrics?.keyword_density ? (
+                          <>
+                            {seoAnalysis.metrics.keyword_density.status === 'good' ? '좋음' :
+                             seoAnalysis.metrics.keyword_density.status === 'low' ? '낮음' : '높음'}
+                            {' '}({seoAnalysis.metrics.keyword_density.value.toFixed(1)}%)
+                          </>
+                        ) : isSeoLoading ? '분석 중...' : '-'}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          seoAnalysis?.metrics?.keyword_density?.status === 'good' ? "bg-green-500" :
+                          seoAnalysis?.metrics?.keyword_density?.status === 'low' ? "bg-amber-500" : "bg-red-500"
+                        )}
+                        style={{ width: `${seoAnalysis?.metrics?.keyword_density?.score || 0}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full w-[88%]" />
-                  </div>
-                </div>
 
-                {/* Score 3 */}
-                <div>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-gray-600">글자 수</span>
-                    <span className="font-bold text-gray-900">{draftWordCount.toLocaleString()}자</span>
+                  {/* Readability */}
+                  <div>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-600">가독성 점수</span>
+                      <span className={cn(
+                        "font-bold",
+                        seoAnalysis?.metrics?.readability?.status === 'good' ? "text-blue-600" : "text-amber-600"
+                      )}>
+                        {seoAnalysis?.metrics?.readability ? (
+                          <>
+                            {seoAnalysis.metrics.readability.status === 'good' ? '우수' : '개선 필요'}
+                            {' '}({seoAnalysis.metrics.readability.score}점)
+                          </>
+                        ) : isSeoLoading ? '분석 중...' : '-'}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 rounded-full transition-all"
+                        style={{ width: `${seoAnalysis?.metrics?.readability?.score || 0}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gray-400 rounded-full w-[40%]" />
+
+                  {/* Content Length */}
+                  <div>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-600">콘텐츠 길이</span>
+                      <span className="font-bold text-gray-900">
+                        {draftWordCount.toLocaleString()}단어 / {draftCharCount.toLocaleString()}자
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          seoAnalysis?.metrics?.content_length?.status === 'good' ? "bg-green-500" :
+                          seoAnalysis?.metrics?.content_length?.status === 'short' ? "bg-amber-500" : "bg-blue-500"
+                        )}
+                        style={{ width: `${seoAnalysis?.metrics?.content_length?.score || Math.min((draftWordCount / 2500) * 100, 100)}%` }}
+                      />
+                    </div>
                   </div>
+
+                  {/* Heading Structure */}
+                  <div>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-600">헤딩 구조</span>
+                      <span className={cn(
+                        "font-bold",
+                        (seoAnalysis?.metrics?.heading_structure?.score || 0) >= 70 ? "text-green-600" : "text-amber-600"
+                      )}>
+                        {seoAnalysis?.metrics?.heading_structure ? (
+                          <>H2: {seoAnalysis.metrics.heading_structure.h2_count}개, H3: {seoAnalysis.metrics.heading_structure.h3_count}개</>
+                        ) : isSeoLoading ? '분석 중...' : '-'}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-purple-500 rounded-full transition-all"
+                        style={{ width: `${seoAnalysis?.metrics?.heading_structure?.score || 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Title Optimization */}
+                  <div>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-600">제목 최적화</span>
+                      <span className={cn(
+                        "font-bold",
+                        seoAnalysis?.metrics?.title_optimization?.status === 'good' ? "text-green-600" : "text-amber-600"
+                      )}>
+                        {seoAnalysis?.metrics?.title_optimization ? (
+                          <>
+                            {seoAnalysis.metrics.title_optimization.status === 'good' ? '최적' :
+                             seoAnalysis.metrics.title_optimization.status === 'too_short' ? '너무 짧음' : '너무 김'}
+                            {' '}({seoAnalysis.metrics.title_optimization.length}자)
+                          </>
+                        ) : isSeoLoading ? '분석 중...' : '-'}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all"
+                        style={{ width: `${seoAnalysis?.metrics?.title_optimization?.score || 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Suggestions */}
+                  {seoAnalysis?.suggestions && seoAnalysis.suggestions.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">개선 제안</h4>
+                      <div className="space-y-2">
+                        {seoAnalysis.suggestions.slice(0, 3).map((suggestion, idx) => (
+                          <div
+                            key={idx}
+                            className={cn(
+                              "text-xs p-2 rounded-lg flex items-start gap-2",
+                              suggestion.priority === 'high' ? "bg-red-50 text-red-700" :
+                              suggestion.priority === 'medium' ? "bg-amber-50 text-amber-700" :
+                              "bg-blue-50 text-blue-700"
+                            )}
+                          >
+                            <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                            {suggestion.message}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* AI Thumbnail */}
