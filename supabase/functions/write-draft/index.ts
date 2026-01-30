@@ -1,11 +1,11 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { corsHeaders } from '../_shared/cors.ts';
-import { getSupabaseClient } from '../_shared/supabase.ts';
-import { callAnthropic } from '../_shared/anthropic.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { getSupabaseClient } from "../_shared/supabase.ts";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 interface OutlineSection {
   id: string;
-  type: 'intro' | 'body' | 'conclusion';
+  type: "intro" | "body" | "conclusion";
   title: string;
   content: string;
   keywords: string[];
@@ -102,36 +102,37 @@ primary_keywords: [핵심키워드1, 핵심키워드2, 핵심키워드3]
 ---
 \`\`\`
 
-1500-2500 단어 분량으로 작성하세요. 반드시 글 마지막에 meta_description과 primary_keywords를 포함해주세요.`;
+2500-3500 단어 분량으로 작성하세요. 반드시 글 마지막에 meta_description과 primary_keywords를 포함해주세요.`;
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { session_id, outline_id, outline } = (await req.json()) as RequestBody;
+    const { session_id, outline_id, outline } =
+      (await req.json()) as RequestBody;
 
     if (!session_id || !outline_id || !outline) {
-      throw new Error('session_id, outline_id, and outline are required');
+      throw new Error("session_id, outline_id, and outline are required");
     }
 
     const supabase = getSupabaseClient(req);
 
     // 리서치 데이터 가져오기
     const { data: outlineData } = await supabase
-      .from('outlines')
-      .select('*, research:research_id(*)')
-      .eq('id', outline_id)
+      .from("outlines")
+      .select("*, research:research_id(*)")
+      .eq("id", outline_id)
       .single();
 
     const research = outlineData?.research;
 
     // 세션 상태 업데이트
     await supabase
-      .from('workflow_sessions')
-      .update({ status: 'writing' })
-      .eq('id', session_id);
+      .from("workflow_sessions")
+      .update({ status: "writing" })
+      .eq("id", session_id);
 
     // 개요 컨텍스트 구성
     const outlineContext = `
@@ -143,33 +144,41 @@ serve(async (req) => {
 
 ## 개요 구조
 
-${outline.sections.map((s, i) => `
+${outline.sections
+  .map(
+    (s, i) => `
 ### ${i + 1}. ${s.title} (${s.type})
 ${s.content}
-키워드: ${s.keywords.join(', ')}
-`).join('\n')}
+키워드: ${s.keywords.join(", ")}
+`,
+  )
+  .join("\n")}
 
-${research ? `
+${
+  research
+    ? `
 ## 활용 가능한 리서치 데이터
 
 ### 시장 데이터
-${research.market_data?.map((d: any) => `- ${d.point} (출처: ${d.source})`).join('\n') || '없음'}
+${research.market_data?.map((d: any) => `- ${d.point} (출처: ${d.source})`).join("\n") || "없음"}
 
 ### 통계
-${research.statistics?.map((s: any) => `- ${s.stat} (출처: ${s.source})`).join('\n') || '없음'}
+${research.statistics?.map((s: any) => `- ${s.stat} (출처: ${s.source})`).join("\n") || "없음"}
 
 ### 전문가 의견
-${research.expert_opinions?.map((e: any) => `- "${e.quote}" - ${e.speaker}`).join('\n') || '없음'}
-` : ''}
+${research.expert_opinions?.map((e: any) => `- "${e.quote}" - ${e.speaker}`).join("\n") || "없음"}
+`
+    : ""
+}
 `;
 
     // Opus 모델로 글 작성 (더 높은 품질)
     const response = await callAnthropic({
-      model: 'claude-sonnet-4-20250514', // Opus 사용 시: 'claude-opus-4-20250514'
+      model: "claude-sonnet-4-20250514", // Opus 사용 시: 'claude-opus-4-20250514'
       system: SYSTEM_PROMPT,
       messages: [
         {
-          role: 'user',
+          role: "user",
           content: `다음 개요와 리서치 데이터를 바탕으로 블로그 글을 작성해주세요.\n${outlineContext}`,
         },
       ],
@@ -188,31 +197,37 @@ ${research.expert_opinions?.map((e: any) => `- "${e.quote}" - ${e.speaker}`).joi
     const title = titleMatch ? titleMatch[1] : outline.title;
 
     // 첫 번째 단락을 부제목으로
-    const lines = content.split('\n').filter(l => l.trim());
-    const subtitleIndex = lines.findIndex(l => !l.startsWith('#') && l.trim().length > 0);
+    const lines = content.split("\n").filter((l) => l.trim());
+    const subtitleIndex = lines.findIndex(
+      (l) => !l.startsWith("#") && l.trim().length > 0,
+    );
     const subtitle = subtitleIndex > 0 ? lines[subtitleIndex] : null;
 
     // 단어 수 계산
-    const wordCount = content.replace(/[#*`>\[\]()]/g, '').split(/\s+/).length;
+    const wordCount = content.replace(/[#*`>\[\]()]/g, "").split(/\s+/).length;
 
     // 글자 수 계산
-    const charCount = content.replace(/[\s#*`>\[\]()]/g, '').length;
+    const charCount = content.replace(/[\s#*`>\[\]()]/g, "").length;
 
     // 메타 정보 추출
     let metaDescription: string | null = null;
     let primaryKeywords: string[] | null = null;
 
-    const metaMatch = content.match(/---\s*\nmeta_description:\s*(.+)\nprimary_keywords:\s*\[([^\]]+)\]\s*\n---/);
+    const metaMatch = content.match(
+      /---\s*\nmeta_description:\s*(.+)\nprimary_keywords:\s*\[([^\]]+)\]\s*\n---/,
+    );
     if (metaMatch) {
       metaDescription = metaMatch[1].trim();
-      primaryKeywords = metaMatch[2].split(',').map((k: string) => k.trim());
+      primaryKeywords = metaMatch[2].split(",").map((k: string) => k.trim());
       // 메타 정보 블록을 콘텐츠에서 제거
-      content = content.replace(/---\s*\nmeta_description:[^-]+---\s*$/m, '').trim();
+      content = content
+        .replace(/---\s*\nmeta_description:[^-]+---\s*$/m, "")
+        .trim();
     }
 
     // DB에 초안 저장
     const { data: savedDraft, error: insertError } = await supabase
-      .from('drafts')
+      .from("drafts")
       .insert({
         session_id,
         outline_id,
@@ -223,7 +238,7 @@ ${research.expert_opinions?.map((e: any) => `- "${e.quote}" - ${e.speaker}`).joi
         char_count: charCount,
         meta_description: metaDescription,
         primary_keywords: primaryKeywords,
-        status: 'draft',
+        status: "draft",
       })
       .select()
       .single();
@@ -232,26 +247,23 @@ ${research.expert_opinions?.map((e: any) => `- "${e.quote}" - ${e.speaker}`).joi
 
     // 세션 상태 업데이트
     await supabase
-      .from('workflow_sessions')
-      .update({ status: 'final' })
-      .eq('id', session_id);
+      .from("workflow_sessions")
+      .update({ status: "final" })
+      .eq("id", session_id);
 
     return new Response(
       JSON.stringify({
         draft: savedDraft,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    console.error("Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
