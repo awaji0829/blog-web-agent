@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ResourceInput } from "./components/ResourceInput";
 import { AnalysisLoading } from "./components/AnalysisLoading";
@@ -13,39 +12,11 @@ import type {
   InsightData,
   OutlineData,
   Insight,
-  Draft,
 } from "./types";
 
-interface WorkflowContainerProps {
-  initialDraft?: Draft | null;
-}
-
-export function WorkflowContainer({ initialDraft }: WorkflowContainerProps) {
+export function WorkflowContainer() {
   const workflow = useWorkflow();
   const navigate = useNavigate();
-  const prevDraftIdRef = useRef<string | null>(null);
-  const [isInitializing, setIsInitializing] = useState(!!initialDraft);
-
-  // 저장된 초안을 보는 경우 final 화면으로 이동, 새 글 작성 시 리셋
-  useEffect(() => {
-    const currentDraftId = initialDraft?.id ?? null;
-    const prevDraftId = prevDraftIdRef.current;
-
-    if (initialDraft && currentDraftId !== prevDraftId) {
-      // 새로운 초안을 보는 경우
-      workflow.setDraft(initialDraft);
-      workflow.setStep("final");
-      setIsInitializing(false);
-    } else if (!initialDraft && prevDraftId !== null) {
-      // 새 글 작성으로 전환 (초안 보기에서 새 글 작성 버튼 클릭)
-      workflow.restart();
-      setIsInitializing(false);
-    } else if (!initialDraft) {
-      setIsInitializing(false);
-    }
-
-    prevDraftIdRef.current = currentDraftId;
-  }, [initialDraft]);
 
   // ResourceInput에서 분석 시작
   const handleStartAnalysis = async (data: ResourceInputData) => {
@@ -137,20 +108,6 @@ export function WorkflowContainer({ initialDraft }: WorkflowContainerProps) {
         tone: workflow.outline.tone,
       }
     : null;
-
-  // 초기화 중이거나 initialDraft가 있는데 아직 final 단계가 아닌 경우 로딩 표시
-  if (isInitializing || (initialDraft && workflow.step !== "final" && workflow.step !== "writing")) {
-    return (
-      <div className="h-full w-full">
-        <FinalDraftScreen
-          onRestart={handleRestart}
-          onComplete={handleComplete}
-          outlineData={outlineAsData}
-          draft={null}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="h-full w-full">

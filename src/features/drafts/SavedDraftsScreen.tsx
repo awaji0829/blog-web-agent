@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   FileText,
@@ -17,10 +18,10 @@ import type { Draft } from '@/features/workflow/types';
 
 interface SavedDraftsScreenProps {
   onNewDraft: () => void;
-  onViewDraft: (draft: Draft) => void;
 }
 
-export function SavedDraftsScreen({ onNewDraft, onViewDraft }: SavedDraftsScreenProps) {
+export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
+  const navigate = useNavigate();
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +156,7 @@ export function SavedDraftsScreen({ onNewDraft, onViewDraft }: SavedDraftsScreen
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => onViewDraft(draft)}
+                  onClick={() => navigate(`/drafts/${draft.id}`)}
                   className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group"
                 >
                   <div className="flex items-start justify-between gap-4">
