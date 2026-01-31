@@ -3,6 +3,7 @@ import { Layout } from '@/components/shared/Layout';
 import { WorkflowContainer } from '@/features/workflow/WorkflowContainer';
 import { SavedDraftsScreen } from '@/features/drafts/SavedDraftsScreen';
 import { DraftViewScreen } from '@/features/drafts/DraftViewScreen';
+import { PromptManagerScreen } from '@/features/prompts/PromptManagerScreen';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ function AppContent() {
           <SavedDraftsScreen onNewDraft={handleNewDraft} />
         } />
         <Route path="/drafts/:id" element={<DraftViewScreen />} />
+        <Route path="/prompts" element={<PromptManagerScreen />} />
       </Routes>
     </Layout>
   );

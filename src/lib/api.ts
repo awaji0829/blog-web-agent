@@ -344,6 +344,66 @@ export async function getSeoMetrics(draftId: string) {
 }
 
 // ============================================
+// AI Prompts API
+// ============================================
+
+export interface AiPrompt {
+  id: string;
+  function_name: string;
+  display_name: string;
+  description: string | null;
+  system_prompt: string;
+  default_prompt: string;
+  updated_at: string;
+  created_at: string;
+}
+
+export async function getAllPrompts() {
+  const { data, error } = await supabase
+    .from('ai_prompts')
+    .select('*')
+    .order('function_name', { ascending: true });
+
+  if (error) throw error;
+  return data as AiPrompt[];
+}
+
+export async function getPromptByFunction(functionName: string) {
+  const { data, error } = await supabase
+    .from('ai_prompts')
+    .select('*')
+    .eq('function_name', functionName)
+    .single();
+
+  if (error) throw error;
+  return data as AiPrompt;
+}
+
+export async function updatePrompt(id: string, systemPrompt: string) {
+  const { data, error } = await supabase
+    .from('ai_prompts')
+    .update({ system_prompt: systemPrompt })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as AiPrompt;
+}
+
+export async function resetPromptToDefault(id: string) {
+  const { data: prompt } = await supabase
+    .from('ai_prompts')
+    .select('default_prompt')
+    .eq('id', id)
+    .single();
+
+  if (!prompt) throw new Error('Prompt not found');
+
+  return updatePrompt(id, prompt.default_prompt);
+}
+
+// ============================================
 // Combined Workflow API
 // ============================================
 
@@ -386,6 +446,12 @@ export const blogApi = {
   // SEO
   analyzeSeo,
   getSeoMetrics,
+
+  // AI Prompts
+  getAllPrompts,
+  getPromptByFunction,
+  updatePrompt,
+  resetPromptToDefault,
 };
 
 export default blogApi;

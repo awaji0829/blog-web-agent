@@ -1,6 +1,7 @@
 import {
   Home,
   Bookmark,
+  Settings,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export function Sidebar() {
   const menuItems: MenuItem[] = [
     { icon: Home, label: "홈", path: "/" },
     { icon: Bookmark, label: "저장됨", path: "/saved" },
+    { icon: Settings, label: "프롬프트", path: "/prompts" },
   ];
 
   const isActive = (path: string) => {
