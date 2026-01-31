@@ -11,10 +11,12 @@ import {
   Plus,
   Search,
   ChevronRight,
+  Link as LinkIcon,
+  Tag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { blogApi } from '@/lib/api';
-import type { Draft } from '@/features/workflow/types';
+import type { DraftWithDetails } from '@/features/workflow/types';
 
 interface SavedDraftsScreenProps {
   onNewDraft: () => void;
@@ -22,7 +24,7 @@ interface SavedDraftsScreenProps {
 
 export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
   const navigate = useNavigate();
-  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [drafts, setDrafts] = useState<DraftWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,7 +74,7 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
     });
   };
 
-  const getStatusBadge = (status: Draft['status']) => {
+  const getStatusBadge = (status: 'draft' | 'final' | 'published') => {
     switch (status) {
       case 'published':
         return <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">발행됨</span>;
@@ -177,6 +179,38 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
                         <p className="text-sm text-gray-500 mb-3 line-clamp-2">
                           {draft.subtitle}
                         </p>
+                      )}
+
+                      {/* Resources */}
+                      {draft.resources && draft.resources.length > 0 && (
+                        <div className="mb-3 flex items-center gap-2 text-xs text-gray-500">
+                          <LinkIcon className="w-3 h-3" />
+                          <span>
+                            {draft.resources.map((r, i) => (
+                              <span key={r.id}>
+                                {r.source_type === 'url' ? (r.title || r.source_url || 'URL') : (r.file_name || '파일')}
+                                {i < draft.resources!.length - 1 && ', '}
+                              </span>
+                            ))}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Keywords */}
+                      {draft.primary_keywords && draft.primary_keywords.length > 0 && (
+                        <div className="mb-3 flex items-start gap-2">
+                          <Tag className="w-3 h-3 text-violet-500 mt-0.5 flex-shrink-0" />
+                          <div className="flex flex-wrap gap-1">
+                            {draft.primary_keywords.map((keyword, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 bg-violet-50 text-violet-700 text-xs rounded-full"
+                              >
+                                {keyword}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       )}
 
                       <div className="flex items-center gap-4 text-xs text-gray-400">

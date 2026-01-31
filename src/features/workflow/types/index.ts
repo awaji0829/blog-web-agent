@@ -204,6 +204,21 @@ export interface Draft {
   updated_at: string;
 }
 
+// Draft with session and resources (for list view)
+export interface DraftWithDetails extends Draft {
+  workflow_sessions?: {
+    keywords: string | null;
+    target_audience: string | null;
+  };
+  resources?: Array<{
+    id: string;
+    source_type: 'url' | 'file';
+    source_url: string | null;
+    file_name: string | null;
+    title: string | null;
+  }>;
+}
+
 // ============================================
 // Component Props Types (기존 호환용)
 // ============================================

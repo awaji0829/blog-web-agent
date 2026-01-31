@@ -6,6 +6,7 @@ import type {
   Research,
   Outline,
   Draft,
+  DraftWithDetails,
   SeoAnalysisResult,
 } from '@/features/workflow/types';
 
@@ -285,11 +286,30 @@ export async function publishDraft(draftId: string) {
 export async function getAllDrafts() {
   const { data, error } = await supabase
     .from('drafts')
-    .select('*')
+    .select(`
+      *,
+      workflow_sessions:session_id(keywords, target_audience)
+    `)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data as Draft[];
+
+  // Fetch resources for each draft's session
+  const draftsWithDetails = await Promise.all(
+    (data || []).map(async (draft) => {
+      const { data: resources } = await supabase
+        .from('resources')
+        .select('id, source_type, source_url, file_name, title')
+        .eq('session_id', draft.session_id);
+
+      return {
+        ...draft,
+        resources: resources || [],
+      } as DraftWithDetails;
+    })
+  );
+
+  return draftsWithDetails;
 }
 
 export async function getDraftById(draftId: string) {
@@ -404,6 +424,41 @@ export async function resetPromptToDefault(id: string) {
 }
 
 // ============================================
+// News Search API (Perplexity)
+// ============================================
+
+export interface NewsSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  date: string | null;
+  last_updated: string | null;
+}
+
+export interface NewsSearchResponse {
+  results: NewsSearchResult[];
+  total: number;
+  search_id: string;
+}
+
+export async function searchRecentNews(
+  keywords: string[],
+  recency: 'hour' | 'day' | 'week' | 'month' | 'year' = 'month',
+  maxResults: number = 10
+): Promise<NewsSearchResponse> {
+  const { data, error } = await supabase.functions.invoke('search-news', {
+    body: {
+      keywords,
+      recency,
+      max_results: maxResults,
+    },
+  });
+
+  if (error) throw error;
+  return data as NewsSearchResponse;
+}
+
+// ============================================
 // Combined Workflow API
 // ============================================
 
@@ -452,6 +507,9 @@ export const blogApi = {
   getPromptByFunction,
   updatePrompt,
   resetPromptToDefault,
+
+  // News Search
+  searchRecentNews,
 };
 
 export default blogApi;

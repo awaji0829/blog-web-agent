@@ -13,32 +13,52 @@ interface ResourceInputProps {
 }
 
 const TARGET_AUDIENCE_OPTIONS = [
-  { value: '', label: '선택하세요' },
   { value: 'general', label: '일반 대중' },
   { value: 'expert', label: '업계 전문가' },
   { value: 'executive', label: '경영진 / 의사결정자' },
   { value: 'beginner', label: '학생 / 입문자' },
-  { value: 'custom', label: '직접 입력' },
 ];
 
 export function ResourceInput({ onStartAnalysis }: ResourceInputProps) {
   const [urls, setUrls] = useState<string[]>(['']);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [keywords, setKeywords] = useState('');
-  const [audienceSelect, setAudienceSelect] = useState('');
-  const [audienceCustom, setAudienceCustom] = useState('');
+  const [selectedAudiences, setSelectedAudiences] = useState<string[]>([]);
+  const [customAudience, setCustomAudience] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const handleStartAnalysis = () => {
-    const targetAudience = audienceSelect === 'custom'
-      ? audienceCustom
-      : TARGET_AUDIENCE_OPTIONS.find(o => o.value === audienceSelect)?.label || '';
+    const targetAudience = selectedAudiences.length > 0
+      ? selectedAudiences.join(', ')
+      : '';
 
     onStartAnalysis({
       urls: urls.filter(u => u.trim() !== ''),
       files: uploadedFiles,
       keywords,
-      targetAudience: targetAudience === '선택하세요' ? '' : targetAudience,
+      targetAudience,
     });
+  };
+
+  const toggleAudience = (value: string) => {
+    setSelectedAudiences(prev =>
+      prev.includes(value)
+        ? prev.filter(a => a !== value)
+        : [...prev, value]
+    );
+  };
+
+  const addCustomAudience = () => {
+    const trimmed = customAudience.trim();
+    if (trimmed && !selectedAudiences.includes(trimmed)) {
+      setSelectedAudiences([...selectedAudiences, trimmed]);
+      setCustomAudience('');
+      setShowCustomInput(false);
+    }
+  };
+
+  const removeAudience = (audience: string) => {
+    setSelectedAudiences(prev => prev.filter(a => a !== audience));
   };
 
   const addUrlInput = () => {
@@ -172,34 +192,88 @@ export function ResourceInput({ onStartAnalysis }: ResourceInputProps) {
         </div>
 
         {/* Target Audience */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-3 pt-2">
           <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Users className="w-4 h-4 text-emerald-500" />
             타겟 독자
             <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded">선택</span>
           </label>
-          <div className="flex gap-3">
-            <select
-              value={audienceSelect}
-              onChange={(e) => setAudienceSelect(e.target.value)}
-              className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm bg-white text-gray-700"
+
+          {/* Audience Options */}
+          <div className="flex flex-wrap gap-2">
+            {TARGET_AUDIENCE_OPTIONS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => toggleAudience(option.label)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                  selectedAudiences.includes(option.label)
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setShowCustomInput(!showCustomInput)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                showCustomInput
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
-              {TARGET_AUDIENCE_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {audienceSelect === 'custom' && (
+              직접 입력
+            </button>
+          </div>
+
+          {/* Custom Audience Input */}
+          {showCustomInput && (
+            <div className="flex gap-2">
               <input
                 type="text"
-                value={audienceCustom}
-                onChange={(e) => setAudienceCustom(e.target.value)}
+                value={customAudience}
+                onChange={(e) => setCustomAudience(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomAudience();
+                  }
+                }}
                 placeholder="예: 스타트업 마케터, 30대 직장인"
                 className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
               />
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={addCustomAudience}
+                className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+              >
+                추가
+              </button>
+            </div>
+          )}
+
+          {/* Selected Audiences Tags */}
+          {selectedAudiences.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedAudiences.map((audience) => (
+                <span
+                  key={audience}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium border border-emerald-200"
+                >
+                  {audience}
+                  <button
+                    type="button"
+                    onClick={() => removeAudience(audience)}
+                    className="hover:bg-emerald-100 rounded-full p-0.5 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

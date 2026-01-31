@@ -4,6 +4,7 @@ import { WorkflowContainer } from '@/features/workflow/WorkflowContainer';
 import { SavedDraftsScreen } from '@/features/drafts/SavedDraftsScreen';
 import { DraftViewScreen } from '@/features/drafts/DraftViewScreen';
 import { PromptManagerScreen } from '@/features/prompts/PromptManagerScreen';
+import { NewsSearchScreen } from '@/features/news/NewsSearchScreen';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ function AppContent() {
         } />
         <Route path="/drafts/:id" element={<DraftViewScreen />} />
         <Route path="/prompts" element={<PromptManagerScreen />} />
+        <Route path="/news" element={<NewsSearchScreen />} />
       </Routes>
     </Layout>
   );
