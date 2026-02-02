@@ -308,7 +308,7 @@ export async function getAllDrafts() {
     (data || []).map(async (draft) => {
       const { data: resources } = await supabase
         .from('resources')
-        .select('id, source_type, source_url, file_name, title')
+        .select('id, source_type, source_url, file_name, file_path, title')
         .eq('session_id', draft.session_id);
 
       return {
@@ -324,12 +324,25 @@ export async function getAllDrafts() {
 export async function getDraftById(draftId: string) {
   const { data, error } = await supabase
     .from('drafts')
-    .select('*')
+    .select(`
+      *,
+      workflow_sessions:session_id(keywords, target_audience)
+    `)
     .eq('id', draftId)
     .single();
 
   if (error) throw error;
-  return data as Draft;
+
+  // Fetch resources for this draft's session
+  const { data: resources } = await supabase
+    .from('resources')
+    .select('id, source_type, source_url, file_name, file_path, title')
+    .eq('session_id', data.session_id);
+
+  return {
+    ...data,
+    resources: resources || [],
+  } as DraftWithDetails;
 }
 
 export async function deleteDraft(draftId: string) {

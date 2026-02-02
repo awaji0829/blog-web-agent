@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
 import {
   FileText,
   Calendar,
@@ -13,10 +13,10 @@ import {
   ChevronRight,
   Link as LinkIcon,
   Tag,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { blogApi } from '@/lib/api';
-import type { DraftWithDetails } from '@/features/workflow/types';
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { blogApi } from "@/lib/api";
+import type { DraftWithDetails } from "@/features/workflow/types";
 
 interface SavedDraftsScreenProps {
   onNewDraft: () => void;
@@ -27,7 +27,7 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
   const [drafts, setDrafts] = useState<DraftWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadDrafts();
@@ -40,8 +40,8 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
       const data = await blogApi.getAllDrafts();
       setDrafts(data);
     } catch (err) {
-      console.error('Failed to load drafts:', err);
-      setError('저장된 초안을 불러오는데 실패했습니다.');
+      console.error("Failed to load drafts:", err);
+      setError("저장된 초안을 불러오는데 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -49,39 +49,52 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
 
   const handleDelete = async (draftId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('정말로 이 초안을 삭제하시겠습니까?')) return;
+    if (!confirm("정말로 이 초안을 삭제하시겠습니까?")) return;
 
     try {
       await blogApi.deleteDraft(draftId);
-      setDrafts(prev => prev.filter(d => d.id !== draftId));
+      setDrafts((prev) => prev.filter((d) => d.id !== draftId));
     } catch (err) {
-      console.error('Failed to delete draft:', err);
-      alert('삭제에 실패했습니다.');
+      console.error("Failed to delete draft:", err);
+      alert("삭제에 실패했습니다.");
     }
   };
 
-  const filteredDrafts = drafts.filter(draft =>
-    draft.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    draft.content?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredDrafts = drafts.filter(
+    (draft) =>
+      draft.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      draft.content?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
-  const getStatusBadge = (status: 'draft' | 'final' | 'published') => {
+  const getStatusBadge = (status: "draft" | "final" | "published") => {
     switch (status) {
-      case 'published':
-        return <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">발행됨</span>;
-      case 'final':
-        return <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">최종</span>;
+      case "published":
+        return (
+          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+            발행됨
+          </span>
+        );
+      case "final":
+        return (
+          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+            최종
+          </span>
+        );
       default:
-        return <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">초안</span>;
+        return (
+          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+            초안
+          </span>
+        );
     }
   };
 
@@ -96,8 +109,7 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
               onClick={onNewDraft}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              <Plus className="w-4 h-4" />
-              새 글 작성
+              <Plus className="w-4 h-4" />새 글 작성
             </button>
           </div>
 
@@ -139,7 +151,9 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
                 <FileText className="w-8 h-8 text-gray-400" />
               </div>
               <p className="text-gray-500 mb-4">
-                {searchQuery ? '검색 결과가 없습니다.' : '저장된 초안이 없습니다.'}
+                {searchQuery
+                  ? "검색 결과가 없습니다."
+                  : "저장된 초안이 없습니다."}
               </p>
               {!searchQuery && (
                 <button
@@ -161,7 +175,8 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
                   onClick={() => navigate(`/drafts/${draft.id}`)}
                   className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-6">
+                    {/* Left: Main Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
                         {getStatusBadge(draft.status)}
@@ -171,8 +186,8 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
                         </span>
                       </div>
 
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors">
-                        {draft.title || '제목 없음'}
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                        {draft.title || "제목 없음"}
                       </h3>
 
                       {draft.subtitle && (
@@ -181,40 +196,10 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
                         </p>
                       )}
 
-                      {/* Resources */}
-                      {draft.resources && draft.resources.length > 0 && (
-                        <div className="mb-3 flex items-center gap-2 text-xs text-gray-500">
-                          <LinkIcon className="w-3 h-3" />
-                          <span>
-                            {draft.resources.map((r, i) => (
-                              <span key={r.id}>
-                                {r.source_type === 'url' ? (r.title || r.source_url || 'URL') : (r.file_name || '파일')}
-                                {i < draft.resources!.length - 1 && ', '}
-                              </span>
-                            ))}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Keywords */}
-                      {draft.primary_keywords && draft.primary_keywords.length > 0 && (
-                        <div className="mb-3 flex items-start gap-2">
-                          <Tag className="w-3 h-3 text-violet-500 mt-0.5 flex-shrink-0" />
-                          <div className="flex flex-wrap gap-1">
-                            {draft.primary_keywords.map((keyword, i) => (
-                              <span
-                                key={i}
-                                className="px-2 py-0.5 bg-violet-50 text-violet-700 text-xs rounded-full"
-                              >
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
                       <div className="flex items-center gap-4 text-xs text-gray-400">
-                        <span>{draft.word_count?.toLocaleString() || 0}단어</span>
+                        <span>
+                          {draft.word_count?.toLocaleString() || 0}단어
+                        </span>
                         {draft.char_count && (
                           <span>{draft.char_count.toLocaleString()}자</span>
                         )}
@@ -227,7 +212,66 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Right: Resources & Keywords Card */}
+                    <div className="flex-shrink-0 w-64">
+                      <div className="bg-gray-50 rounded-lg p-3 space-y-3 border border-gray-100">
+                        {/* Resources */}
+                        {draft.resources && draft.resources.length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                              <LinkIcon className="w-3 h-3" />
+                              사용된 자료
+                            </div>
+                            <div className="space-y-1">
+                              {draft.resources.map((r) => (
+                                <div
+                                  key={r.id}
+                                  className="text-xs text-gray-600 truncate"
+                                >
+                                  •{" "}
+                                  {r.source_type === "url"
+                                    ? r.title || r.source_url || "URL"
+                                    : r.file_name || "파일"}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Keywords */}
+                        {/* {draft.primary_keywords &&
+                          draft.primary_keywords.length > 0 && (
+                            <div className="space-y-1.5 pt-2 border-t border-gray-200">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                                <Tag className="w-3 h-3" />
+                                핵심 키워드
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {draft.primary_keywords.map((keyword, i) => (
+                                  <span
+                                    key={i}
+                                    className="px-2 py-0.5 bg-violet-50 text-violet-700 text-xs rounded-full font-medium"
+                                  >
+                                    {keyword}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )} */}
+
+                        {/* Empty State */}
+                        {(!draft.resources || draft.resources.length === 0) &&
+                          (!draft.primary_keywords ||
+                            draft.primary_keywords.length === 0) && (
+                            <div className="text-xs text-gray-400 text-center py-2">
+                              자료 정보 없음
+                            </div>
+                          )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col items-center gap-2 shrink-0">
                       <button
                         onClick={(e) => handleDelete(draft.id, e)}
                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"

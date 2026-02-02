@@ -8,34 +8,18 @@ import {
   Check,
 } from "lucide-react";
 import { blogApi } from "@/lib/api";
+import type { DraftWithDetails } from "@/features/workflow/types";
 import { DraftEditor } from "./components/DraftEditor";
 import { DraftExportPanel } from "./components/DraftExportPanel";
 import { DraftSeoPanel } from "./components/DraftSeoPanel";
 import { DraftThumbnailPanel } from "./components/DraftThumbnailPanel";
-
-interface Draft {
-  id: string;
-  session_id: string;
-  outline_id: string | null;
-  title: string | null;
-  subtitle: string | null;
-  content: string | null;
-  word_count: number;
-  char_count: number | null;
-  thumbnail_url: string | null;
-  status: "draft" | "final" | "published";
-  seo_metrics: any;
-  meta_description: string | null;
-  primary_keywords: string[] | null;
-  created_at: string;
-  updated_at: string;
-}
+import { DraftResourcesPanel } from "./components/DraftResourcesPanel";
 
 export function DraftViewScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [draft, setDraft] = useState<DraftWithDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -160,6 +144,10 @@ export function DraftViewScreen() {
 
           {/* Right: Panels */}
           <div className="w-96 space-y-6">
+            <DraftResourcesPanel
+              resources={draft.resources}
+              keywords={draft.primary_keywords}
+            />
             <DraftExportPanel draft={draft} />
             <DraftSeoPanel draft={draft} />
             <DraftThumbnailPanel draft={draft} />

@@ -81,6 +81,15 @@ src/features/news/NewsSearchScreen.tsx
 ## 6. 리소스 입력 화면 정보 위계 개선
 - ResourceInput을 섹션별 독립 카드로 분리하고, 필수 항목(참고 자료)을 상단에 강조 배치
 
+## 7. 초안 목록 화면 리소스/키워드 표시
+- SavedDraftsScreen의 각 초안 카드에 사용된 리소스와 핵심 키워드를 표시하는 정보 카드 추가
+
+## 8. 초안 상세보기 화면 리소스/키워드 패널
+- DraftViewScreen 우측에 참고 자료 및 키워드 패널 추가, getDraftById API가 리소스 정보 포함하도록 개선
+
+## 9. 리소스 클릭으로 URL/파일 열기
+- DraftResourcesPanel의 리소스 항목 클릭 시 URL은 새 탭에서 오픈, 파일은 Supabase Storage에서 다운로드/미리보기
+
 ---
 
 ## 주요 변경 파일 목록 (2026-02-02)
@@ -95,6 +104,10 @@ src/features/workflow/WorkflowContainer.tsx
 src/features/workflow/components/ResourceInput.tsx
 src/features/workflow/components/InsightSelectionScreen.tsx
 src/features/workflow/components/InsightCard.tsx
+src/features/workflow/types/index.ts
+src/features/drafts/SavedDraftsScreen.tsx
+src/features/drafts/DraftViewScreen.tsx
+src/features/drafts/components/DraftResourcesPanel.tsx (신규)
 src/lib/api.ts
 ```
 

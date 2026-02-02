@@ -215,6 +215,7 @@ export interface DraftWithDetails extends Draft {
     source_type: 'url' | 'file';
     source_url: string | null;
     file_name: string | null;
+    file_path: string | null;
     title: string | null;
   }>;
 }
