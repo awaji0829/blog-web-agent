@@ -116,7 +116,16 @@ export async function extractInsights(
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Edge Function Error:', error);
+    throw new Error(`Edge Function 호출 실패: ${error.message}`);
+  }
+
+  if (data?.error) {
+    console.error('Function Response Error:', data.error);
+    throw new Error(`인사이트 추출 실패: ${data.error}`);
+  }
+
   return data.insights as Insight[];
 }
 

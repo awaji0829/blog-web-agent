@@ -16,7 +16,7 @@ export function Sidebar() {
     { icon: Home, label: "홈", path: "/" },
     { icon: Bookmark, label: "저장됨", path: "/saved" },
     { icon: Newspaper, label: "뉴스 검색", path: "/news" },
-    { icon: Settings, label: "프롬프트", path: "/prompts" },
+    { icon: Settings, label: "프롬프트(베타)", path: "/prompts" },
   ];
 
   const isActive = (path: string) => {

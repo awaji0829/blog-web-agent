@@ -24,8 +24,9 @@ export function WorkflowContainer() {
       await workflow.startAnalysis(data);
     } catch (err) {
       console.error("Analysis failed:", err);
-      // 에러 시에도 selection 단계로 이동 (mock 데이터로 fallback)
-      workflow.setStep("selection");
+      // 에러 발생 시 input 단계로 돌아가기
+      workflow.setStep("input");
+      // 에러는 workflow.error에 저장되어 있음
     }
   };
 
@@ -112,7 +113,10 @@ export function WorkflowContainer() {
   return (
     <div className="h-full w-full">
       {workflow.step === "input" && (
-        <ResourceInput onStartAnalysis={handleStartAnalysis} />
+        <ResourceInput
+          onStartAnalysis={handleStartAnalysis}
+          error={workflow.error}
+        />
       )}
 
       {workflow.step === "analyzing" && <AnalysisLoading />}

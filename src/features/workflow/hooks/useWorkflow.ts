@@ -62,12 +62,42 @@ export function useWorkflow() {
       setState(prev => ({ ...prev, session, step: 'analyzing' }));
 
       // 2. URL 리소스 수집
-      for (const url of data.urls.filter(u => u.trim())) {
+      const urls = data.urls.filter(u => u.trim());
+      const collectionResults: { url: string; success: boolean; error?: string }[] = [];
+
+      for (const url of urls) {
         try {
           await blogApi.collectResource(session.id, url);
+          collectionResults.push({ url, success: true });
         } catch (err) {
-          console.warn(`Failed to collect URL: ${url}`, err);
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          console.error(`Failed to collect URL: ${url}`, errorMessage);
+          collectionResults.push({ url, success: false, error: errorMessage });
         }
+      }
+
+      // 모든 URL이 실패한 경우
+      const successCount = collectionResults.filter(r => r.success).length;
+      if (successCount === 0 && urls.length > 0) {
+        const failedUrls = collectionResults
+          .filter(r => !r.success)
+          .map(r => `• ${r.url}\n  오류: ${r.error}`)
+          .join('\n\n');
+
+        throw new Error(
+          `모든 URL 수집에 실패했습니다.\n\n${failedUrls}\n\n해결 방법:\n` +
+          `1. URL이 올바른지 확인해주세요\n` +
+          `2. 해당 웹사이트가 봇 접근을 차단할 수 있습니다\n` +
+          `3. 다른 URL을 시도하거나 텍스트를 직접 입력해주세요`
+        );
+      }
+
+      // 일부만 실패한 경우 경고
+      if (successCount < urls.length) {
+        console.warn(
+          `${urls.length}개 중 ${successCount}개 URL만 수집 성공. ` +
+          `${urls.length - successCount}개는 차단되었습니다.`
+        );
       }
 
       // 3. 파일 리소스 추가 (TODO: 실제 파일 업로드 구현)

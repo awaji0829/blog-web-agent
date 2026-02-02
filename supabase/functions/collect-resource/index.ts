@@ -22,15 +22,37 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient(req);
 
+    console.log(`[collect-resource] Attempting to fetch: ${url}`);
+
     // URL에서 콘텐츠 가져오기
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; BlogBot/1.0)',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
       },
     });
 
+    console.log(`[collect-resource] Response status: ${response.status} ${response.statusText}`);
+    console.log(`[collect-resource] Response headers:`, Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status}`);
+      // 403 에러 상세 정보
+      let errorDetails = `Status: ${response.status} ${response.statusText}`;
+
+      try {
+        const errorBody = await response.text();
+        console.log(`[collect-resource] Error response body (first 500 chars):`, errorBody.substring(0, 500));
+        errorDetails += `\nURL: ${url}\nServer: ${response.headers.get('server') || 'unknown'}`;
+      } catch (e) {
+        console.error('[collect-resource] Could not read error response body');
+      }
+
+      throw new Error(`Failed to fetch URL: ${errorDetails}`);
     }
 
     const html = await response.text();
@@ -81,9 +103,15 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[collect-resource] Error:', error);
+    console.error('[collect-resource] Error stack:', error.stack);
+
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: error.message,
+        type: error.name,
+        details: 'Check Edge Function logs for more information'
+      }),
       {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

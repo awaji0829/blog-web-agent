@@ -58,3 +58,47 @@ src/features/news/NewsSearchScreen.tsx
 
 ✅ TypeScript 컴파일 성공
 ✅ 빌드 검증 통과
+
+---
+
+# 변경 내역 (2026-02-02)
+
+## 1. AI 프롬프트 DB 관리 시스템
+- write-draft Edge Function이 DB의 ai_prompts 테이블에서 프롬프트를 로드하도록 변경 (PromptManagerScreen에서 수정 시 즉시 반영)
+
+## 2. 웹 스크래핑 403 에러 대응
+- collect-resource의 User-Agent를 실제 Chrome 브라우저로 위장하고 상세 로깅 추가
+
+## 3. URL 수집 실패 에러 처리
+- 모든 URL 수집 실패 시 워크플로우 중단 및 상세 에러 메시지 표시, input 단계로 복귀
+
+## 4. 인사이트 선택 화면 레이아웃 개선
+- InsightSelectionScreen의 카드 배열을 가로 그리드에서 세로 리스트로 변경해 가독성 향상
+
+## 5. 인사이트 카드 컴팩트 디자인
+- InsightCard를 수평 레이아웃으로 재설계하여 카드 높이 약 50% 감소 및 정보 밀도 향상
+
+## 6. 리소스 입력 화면 정보 위계 개선
+- ResourceInput을 섹션별 독립 카드로 분리하고, 필수 항목(참고 자료)을 상단에 강조 배치
+
+---
+
+## 주요 변경 파일 목록 (2026-02-02)
+
+```
+supabase/functions/write-draft/index.ts
+supabase/functions/_shared/prompts.ts (신규)
+supabase/migrations/006_update_write_draft_prompt.sql (신규)
+supabase/functions/collect-resource/index.ts
+src/features/workflow/hooks/useWorkflow.ts
+src/features/workflow/WorkflowContainer.tsx
+src/features/workflow/components/ResourceInput.tsx
+src/features/workflow/components/InsightSelectionScreen.tsx
+src/features/workflow/components/InsightCard.tsx
+src/lib/api.ts
+```
+
+## 빌드 상태 (2026-02-02)
+
+✅ TypeScript 컴파일 성공
+✅ 빌드 검증 통과

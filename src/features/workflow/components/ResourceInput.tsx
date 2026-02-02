@@ -10,6 +10,7 @@ interface ResourceInputData {
 
 interface ResourceInputProps {
   onStartAnalysis: (data: ResourceInputData) => void;
+  error?: string | null;
 }
 
 const TARGET_AUDIENCE_OPTIONS = [
@@ -19,7 +20,7 @@ const TARGET_AUDIENCE_OPTIONS = [
   { value: 'beginner', label: '학생 / 입문자' },
 ];
 
-export function ResourceInput({ onStartAnalysis }: ResourceInputProps) {
+export function ResourceInput({ onStartAnalysis, error }: ResourceInputProps) {
   const [urls, setUrls] = useState<string[]>(['']);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [keywords, setKeywords] = useState('');
@@ -87,9 +88,9 @@ export function ResourceInput({ onStartAnalysis }: ResourceInputProps) {
   const hasResources = urls.some(u => u.trim() !== '') || uploadedFiles.length > 0;
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-4 flex flex-col gap-8">
+    <div className="max-w-3xl mx-auto py-12 px-4 space-y-6">
       {/* Hero Section */}
-      <div className="text-center space-y-3">
+      <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
           새로운 콘텐츠를 시작해 보세요
         </h1>
@@ -98,40 +99,37 @@ export function ResourceInput({ onStartAnalysis }: ResourceInputProps) {
         </p>
       </div>
 
-      {/* Inputs Section */}
-      <div className="space-y-6 bg-white rounded-2xl p-1">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              !
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-red-900 mb-2">URL 수집 실패</h3>
+              <p className="text-sm text-red-800 whitespace-pre-line leading-relaxed">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* Keywords Input */}
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Tag className="w-4 h-4 text-violet-500" />
-            주제 · 키워드
-            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded">선택</span>
-          </label>
-          <input
-            type="text"
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
-            placeholder="예: SaaS 마케팅, B2B, 성장 전략"
-            className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
-          />
-          <p className="text-xs text-gray-400 pl-1">여러 키워드는 쉼표로 구분해 주세요</p>
+      {/* Resources Section - 필수 */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+          <span className="text-base font-bold text-gray-900">참고 자료</span>
+          <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">필수</span>
         </div>
 
-        {/* Resources Section */}
-        <div className="space-y-4 pt-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700">참고 자료</span>
-            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">필수</span>
-          </div>
-
-          {/* URL Input */}
+        {/* URL Input */}
+        <div className="space-y-3">
+          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <LinkIcon className="w-4 h-4 text-blue-500" />
+            URL 링크
+          </label>
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <LinkIcon className="w-4 h-4 text-blue-500" />
-              URL 링크
-            </label>
-            <div className="space-y-3">
               {urls.map((url, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <input
@@ -148,21 +146,21 @@ export function ResourceInput({ onStartAnalysis }: ResourceInputProps) {
                   )}
                 </div>
               ))}
-              <button
-                onClick={addUrlInput}
-                className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 pl-1"
-              >
-                <Plus className="w-3 h-3" /> 링크 추가하기
-              </button>
-            </div>
+            <button
+              onClick={addUrlInput}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 pl-1"
+            >
+              <Plus className="w-3 h-3" /> 링크 추가하기
+            </button>
           </div>
+        </div>
 
-          {/* File Upload */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-orange-500" />
-              파일 업로드
-            </label>
+        {/* File Upload */}
+        <div className="space-y-3 pt-2">
+          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-orange-500" />
+            파일 업로드
+          </label>
             <div
               onClick={handleFileUpload}
               className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
@@ -174,111 +172,127 @@ export function ResourceInput({ onStartAnalysis }: ResourceInputProps) {
               <span className="text-xs text-gray-400 mt-1">클릭 또는 드래그 앤 드롭</span>
             </div>
 
-            {/* Uploaded Files */}
-            {uploadedFiles.length > 0 && (
-               <div className="flex flex-wrap gap-2 mt-2">
-                 {uploadedFiles.map((file, i) => (
-                   <div key={i} className="bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 flex items-center gap-2">
-                     <FileText className="w-3 h-3" />
-                     {file}
-                     <button onClick={(e) => { e.stopPropagation(); setUploadedFiles(prev => prev.filter((_, idx) => idx !== i)); }} className="hover:text-red-500">
-                       <X className="w-3 h-3" />
-                     </button>
-                   </div>
-                 ))}
-               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Target Audience */}
-        <div className="space-y-3 pt-2">
-          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Users className="w-4 h-4 text-emerald-500" />
-            타겟 독자
-            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded">선택</span>
-          </label>
-
-          {/* Audience Options */}
-          <div className="flex flex-wrap gap-2">
-            {TARGET_AUDIENCE_OPTIONS.map(option => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => toggleAudience(option.label)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                  selectedAudiences.includes(option.label)
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setShowCustomInput(!showCustomInput)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                showCustomInput
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              직접 입력
-            </button>
-          </div>
-
-          {/* Custom Audience Input */}
-          {showCustomInput && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={customAudience}
-                onChange={(e) => setCustomAudience(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addCustomAudience();
-                  }
-                }}
-                placeholder="예: 스타트업 마케터, 30대 직장인"
-                className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
-              />
-              <button
-                type="button"
-                onClick={addCustomAudience}
-                className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-              >
-                추가
-              </button>
-            </div>
-          )}
-
-          {/* Selected Audiences Tags */}
-          {selectedAudiences.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {selectedAudiences.map((audience) => (
-                <span
-                  key={audience}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium border border-emerald-200"
-                >
-                  {audience}
-                  <button
-                    type="button"
-                    onClick={() => removeAudience(audience)}
-                    className="hover:bg-emerald-100 rounded-full p-0.5 transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
+          {/* Uploaded Files */}
+          {uploadedFiles.length > 0 && (
+             <div className="flex flex-wrap gap-2 mt-2">
+               {uploadedFiles.map((file, i) => (
+                 <div key={i} className="bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 flex items-center gap-2">
+                   <FileText className="w-3 h-3" />
+                   {file}
+                   <button onClick={(e) => { e.stopPropagation(); setUploadedFiles(prev => prev.filter((_, idx) => idx !== i)); }} className="hover:text-red-500">
+                     <X className="w-3 h-3" />
+                   </button>
+                 </div>
+               ))}
+             </div>
           )}
         </div>
       </div>
 
+      {/* Keywords Section - 선택 */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <Tag className="w-4 h-4 text-violet-500" />
+          주제 · 키워드
+          <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded">선택</span>
+        </label>
+        <input
+          type="text"
+          value={keywords}
+          onChange={(e) => setKeywords(e.target.value)}
+          placeholder="예: SaaS 마케팅, B2B, 성장 전략"
+          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
+        />
+        <p className="text-xs text-gray-400 pl-1">여러 키워드는 쉼표로 구분해 주세요</p>
+      </div>
+
+      {/* Target Audience Section - 선택 */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <Users className="w-4 h-4 text-emerald-500" />
+          타겟 독자
+          <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded">선택</span>
+        </label>
+
+        {/* Audience Options */}
+        <div className="flex flex-wrap gap-2">
+          {TARGET_AUDIENCE_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => toggleAudience(option.label)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                selectedAudiences.includes(option.label)
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowCustomInput(!showCustomInput)}
+            className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+              showCustomInput
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            직접 입력
+          </button>
+        </div>
+
+        {/* Custom Audience Input */}
+        {showCustomInput && (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customAudience}
+              onChange={(e) => setCustomAudience(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addCustomAudience();
+                }
+              }}
+              placeholder="예: 스타트업 마케터, 30대 직장인"
+              className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
+            />
+            <button
+              type="button"
+              onClick={addCustomAudience}
+              className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+            >
+              추가
+            </button>
+          </div>
+        )}
+
+        {/* Selected Audiences Tags */}
+        {selectedAudiences.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {selectedAudiences.map((audience) => (
+              <span
+                key={audience}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium border border-emerald-200"
+              >
+                {audience}
+                <button
+                  type="button"
+                  onClick={() => removeAudience(audience)}
+                  className="hover:bg-emerald-100 rounded-full p-0.5 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Start Button */}
-      <div className="pt-4">
+      <div className="pt-2">
         <button
           onClick={handleStartAnalysis}
           disabled={!hasResources}

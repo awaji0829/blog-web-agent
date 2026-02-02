@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase.ts";
 import { callAnthropic } from "../_shared/anthropic.ts";
+import { getPrompt } from "../_shared/prompts.ts";
 
 interface OutlineSection {
   id: string;
@@ -26,7 +27,8 @@ interface RequestBody {
   outline: Outline;
 }
 
-const SYSTEM_PROMPT = `당신은 비즈니스/산업 분석 블로그 작가입니다. 주어진 개요를 바탕으로 고품질 블로그 글을 작성합니다.
+// Default prompt used as fallback if DB query fails
+const DEFAULT_SYSTEM_PROMPT = `당신은 비즈니스/산업 분석 블로그 작가입니다. 주어진 개요를 바탕으로 고품질 블로그 글을 작성합니다.
 
 ## 글쓰기 원칙
 
@@ -48,8 +50,8 @@ const SYSTEM_PROMPT = `당신은 비즈니스/산업 분석 블로그 작가입�
 - **굵은 글씨**: 핵심 개념, 중요 수치
 - 인용구: 전문가 의견이나 중요 문장
 
-### 이미지 삽입 가이드
-- 적절한 위치에 이미지 삽입 지점을 표시 (전체 글에 2-4개 권장)
+### 이미지 삽입 가이드 (필수)
+- **필수**: 전체 글에 이미지 삽입 지점을 2-4개 반드시 포함해야 함
 - 마크다운 이미지 형식 사용: \`![이미지 설명: 구체적인 내용](IMAGE_PLACEHOLDER)\`
 - 이미지 설명은 마케터가 찾아야 할 이미지의 구체적인 내용 서술
 - 예시: \`![이미지 설명: AI 에이전트가 다양한 작업을 처리하는 대시보드 화면](IMAGE_PLACEHOLDER)\`
@@ -81,8 +83,8 @@ const SYSTEM_PROMPT = `당신은 비즈니스/산업 분석 블로그 작가입�
 - 불렛 포인트, 번호 목록 적절히 활용
 - 핵심 개념은 **굵은 글씨**로 강조
 
-### 출처 및 참고자료 기재
-- 글 말미에 반드시 "## 참고자료" 섹션을 추가
+### 출처 및 참고자료 기재 (필수)
+- **필수**: 글 말미에 반드시 "## 참고자료" 섹션을 추가해야 함
 - 리서치 데이터에서 활용한 모든 출처를 명시
 - 출처 형식: "- 출처명 또는 URL" (불렛 포인트 리스트)
 - 신뢰성 있는 출처 우선 (공식 통계, 전문가 의견, 언론 기사 등)
@@ -126,7 +128,15 @@ primary_keywords: [핵심키워드1, 핵심키워드2, 핵심키워드3]
 ---
 \`\`\`
 
-2500-3500 단어 분량으로 작성하세요. 반드시 글 말미에 "## 참고자료" 섹션, meta_description, primary_keywords를 포함해주세요.`;
+2500-3500 단어 분량으로 작성하세요.
+
+**반드시 포함해야 하는 필수 요소:**
+✅ 이미지 삽입 지점 2-4개 (형식: ![이미지 설명: 구체적 내용](IMAGE_PLACEHOLDER))
+✅ "## 참고자료" 섹션 (리서치 데이터의 출처를 불렛 포인트로 나열)
+✅ meta_description (155자 이내, 핵심 키워드 포함)
+✅ primary_keywords (핵심 키워드 3-5개 배열 형태)
+
+이 필수 요소들이 모두 포함되지 않으면 불완전한 글로 간주됩니다.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -142,6 +152,13 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient(req);
+
+    // Load system prompt from DB (with fallback to default)
+    const systemPrompt = await getPrompt(
+      supabase,
+      "write-draft",
+      DEFAULT_SYSTEM_PROMPT
+    );
 
     // 리서치 데이터 가져오기
     const { data: outlineData } = await supabase
@@ -199,14 +216,21 @@ ${research.expert_opinions?.map((e: any) => `- "${e.quote}" - ${e.speaker}`).joi
     // Opus 모델로 글 작성 (더 높은 품질)
     const response = await callAnthropic({
       model: "claude-sonnet-4-20250514", // Opus 사용 시: 'claude-opus-4-20250514'
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [
         {
           role: "user",
-          content: `다음 개요와 리서치 데이터를 바탕으로 블로그 글을 작성해주세요.\n${outlineContext}`,
+          content: `다음 개요와 리서치 데이터를 바탕으로 블로그 글을 작성해주세요.
+
+**필수 포함 사항 (반드시 지켜주세요):**
+✅ 이미지 삽입 지점 2-4개 (형식: ![이미지 설명: 구체적 내용](IMAGE_PLACEHOLDER))
+✅ "## 참고자료" 섹션 (리서치 데이터의 출처를 불렛 포인트로 나열)
+✅ meta_description 및 primary_keywords (글 말미에 --- 구분자로 추가)
+
+${outlineContext}`,
         },
       ],
-      maxTokens: 8192,
+      maxTokens: 16000,
     });
 
     // Markdown 블록 추출
