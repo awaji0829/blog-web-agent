@@ -7,18 +7,20 @@ interface RequestBody {
   max_results?: number;
 }
 
-interface SearchResult {
-  title: string;
-  url: string;
-  snippet: string;
-  date: string | null;
-  last_updated: string | null;
+interface PerplexityChatResponse {
+  id: string;
+  choices: Array<{
+    message: {
+      role: string;
+      content: string;
+    };
+  }>;
+  citations?: string[];
 }
 
-interface PerplexityResponse {
-  results: SearchResult[];
-  id: string;
-  server_time: string | null;
+interface TranslatedResult {
+  title: string;
+  snippet: string;
 }
 
 serve(async (req) => {
@@ -39,17 +41,33 @@ serve(async (req) => {
       throw new Error("PERPLEXITY_API_KEY not configured");
     }
 
-    // Perplexity Search API 호출
-    const response = await fetch("https://api.perplexity.ai/search", {
+    const query = keywords.join(", ");
+
+    // Perplexity Sonar API (Chat Completions) 호출
+    const response = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${PERPLEXITY_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: keywords,
+        model: "sonar",
+        messages: [
+          {
+            role: "system",
+            content: `You are a news research assistant. Search for recent news and articles related to the given keywords. Return results as a JSON array with exactly this format:
+[
+  { "title": "article title", "snippet": "2-3 sentence summary of the article" },
+  ...
+]
+Return up to ${max_results} results. Respond ONLY with the JSON array, no other text.`,
+          },
+          {
+            role: "user",
+            content: `Find recent news about: ${query}`,
+          },
+        ],
         search_recency_filter: recency,
-        max_results,
       }),
     });
 
@@ -58,12 +76,80 @@ serve(async (req) => {
       throw new Error(`Perplexity API error: ${response.status} - ${errorText}`);
     }
 
-    const data: PerplexityResponse = await response.json();
+    const data: PerplexityChatResponse = await response.json();
+    const content = data.choices?.[0]?.message?.content || "[]";
+    const citations = data.citations || [];
+
+    // Perplexity 응답에서 JSON 파싱
+    let rawResults: Array<{ title: string; snippet: string }> = [];
+    try {
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        rawResults = JSON.parse(jsonMatch[0]);
+      }
+    } catch {
+      console.error("Failed to parse Perplexity response:", content);
+      rawResults = [{ title: query, snippet: content.substring(0, 300) }];
+    }
+
+    // Claude Haiku로 한국어 번역
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    let translatedResults = rawResults;
+
+    if (ANTHROPIC_API_KEY && rawResults.length > 0) {
+      try {
+        const translateResponse = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            // "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: "claude-haiku-3-5",
+            max_tokens: 4096,
+            messages: [
+              {
+                role: "user",
+                content: `다음 뉴스 검색 결과를 한국어로 번역해주세요. 이미 한국어인 항목은 그대로 두세요.
+JSON 배열만 반환하세요. 다른 텍스트는 포함하지 마세요.
+
+입력:
+${JSON.stringify(rawResults)}
+
+출력 형식:
+[{"title": "한국어 제목", "snippet": "한국어 요약"}]`,
+              },
+            ],
+          }),
+        });
+
+        if (translateResponse.ok) {
+          const translateData = await translateResponse.json();
+          const translated = translateData.content?.[0]?.text || "";
+          const jsonMatch = translated.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            translatedResults = JSON.parse(jsonMatch[0]) as TranslatedResult[];
+          }
+        }
+      } catch (err) {
+        console.error("Translation failed, using original:", err);
+      }
+    }
+
+    // 결과 조합 (번역 + citation URL)
+    const results = translatedResults.map((item, i) => ({
+      title: item.title,
+      url: citations[i] || "",
+      snippet: item.snippet,
+      date: null,
+      last_updated: null,
+    }));
 
     return new Response(
       JSON.stringify({
-        results: data.results,
-        total: data.results.length,
+        results,
+        total: results.length,
         search_id: data.id,
       }),
       {

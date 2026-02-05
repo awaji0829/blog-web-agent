@@ -1,11 +1,20 @@
-import { useState } from 'react';
-import { blogApi, NewsSearchResult } from '@/lib/api';
-import { Search, X, ExternalLink, Calendar, Loader2, Newspaper } from 'lucide-react';
+import { useState } from "react";
+import { blogApi, NewsSearchResult } from "@/lib/api";
+import {
+  Search,
+  X,
+  ExternalLink,
+  Calendar,
+  Loader2,
+  Newspaper,
+} from "lucide-react";
 
 export function NewsSearchScreen() {
   const [keywords, setKeywords] = useState<string[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [recency, setRecency] = useState<'hour' | 'day' | 'week' | 'month' | 'year'>('month');
+  const [inputValue, setInputValue] = useState("");
+  const [recency, setRecency] = useState<
+    "hour" | "day" | "week" | "month" | "year"
+  >("month");
   const [results, setResults] = useState<NewsSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,16 +24,16 @@ export function NewsSearchScreen() {
     const trimmed = inputValue.trim();
     if (trimmed && !keywords.includes(trimmed)) {
       setKeywords([...keywords, trimmed]);
-      setInputValue('');
+      setInputValue("");
     }
   };
 
   const handleRemoveKeyword = (keyword: string) => {
-    setKeywords(keywords.filter(k => k !== keyword));
+    setKeywords(keywords.filter((k) => k !== keyword));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleAddKeyword();
     }
@@ -32,7 +41,7 @@ export function NewsSearchScreen() {
 
   const handleSearch = async () => {
     if (keywords.length === 0) {
-      setError('최소 1개 이상의 키워드를 입력하세요');
+      setError("최소 1개 이상의 키워드를 입력하세요");
       return;
     }
 
@@ -42,60 +51,60 @@ export function NewsSearchScreen() {
 
     try {
       // 🎭 MOCK DATA - 실제 API 연결 전 UI 확인용
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 로딩 시뮬레이션
+      // await new Promise(resolve => setTimeout(resolve, 1000)); // 로딩 시뮬레이션
 
-      const mockResults: NewsSearchResult[] = [
-        {
-          title: "AI 에이전트, 2026년 기업 필수 기술로 부상",
-          url: "https://example.com/ai-agent-trends-2026",
-          snippet: "2026년 기업들이 AI 에이전트를 도입하며 생산성이 30% 증가했다는 보고서가 발표됐다. 특히 고객 서비스, 데이터 분석, 콘텐츠 생성 분야에서 AI 에이전트의 활용도가 급증하고 있다.",
-          date: "2026-01-28",
-          last_updated: "2026-01-30"
-        },
-        {
-          title: "OpenAI, 새로운 멀티모달 AI 모델 'GPT-5' 공개",
-          url: "https://example.com/openai-gpt5-announcement",
-          snippet: "OpenAI가 이미지, 비디오, 오디오를 동시에 처리할 수 있는 차세대 AI 모델 GPT-5를 공개했다. 이전 모델 대비 3배 향상된 성능을 자랑하며, 실시간 비디오 분석 기능이 추가됐다.",
-          date: "2026-01-25",
-          last_updated: null
-        },
-        {
-          title: "블록체인 기술, 공공 부문 디지털 전환 가속화",
-          url: "https://example.com/blockchain-public-sector",
-          snippet: "정부와 공공기관들이 블록체인 기술을 활용한 투명한 행정 시스템 구축에 나섰다. 서울시는 블록체인 기반 전자투표 시스템을 시범 운영하며 긍정적인 결과를 얻었다.",
-          date: "2026-01-27",
-          last_updated: "2026-01-29"
-        },
-        {
-          title: "Web3 생태계, 메타버스와 결합하며 새로운 국면 맞이",
-          url: "https://example.com/web3-metaverse-integration",
-          snippet: "Web3 기술이 메타버스 플랫폼과 결합하면서 디지털 자산 거래 시장이 활성화되고 있다. NFT 기반 가상 부동산 거래량이 전년 대비 150% 증가했다.",
-          date: "2026-01-26",
-          last_updated: null
-        },
-        {
-          title: "AI 기반 콘텐츠 생성 도구, 마케팅 업계 판도 변화",
-          url: "https://example.com/ai-content-marketing-revolution",
-          snippet: "AI를 활용한 자동 콘텐츠 생성 도구가 마케팅 업계에 혁신을 가져오고 있다. 기업들은 AI 도구를 통해 콘텐츠 제작 시간을 70% 단축하고 개인화된 마케팅을 실현하고 있다.",
-          date: "2026-01-24",
-          last_updated: "2026-01-28"
-        },
-        {
-          title: "양자 컴퓨팅, 암호화 기술의 새로운 패러다임 제시",
-          url: "https://example.com/quantum-computing-encryption",
-          snippet: "양자 컴퓨터의 발전으로 기존 암호화 방식의 보안 위협이 커지면서, 양자 내성 암호(PQC) 기술 개발이 가속화되고 있다. 주요 IT 기업들이 양자 암호 기술 표준화에 동참했다.",
-          date: "2026-01-23",
-          last_updated: null
-        }
-      ];
+      // const mockResults: NewsSearchResult[] = [
+      //   {
+      //     title: "AI 에이전트, 2026년 기업 필수 기술로 부상",
+      //     url: "https://example.com/ai-agent-trends-2026",
+      //     snippet: "2026년 기업들이 AI 에이전트를 도입하며 생산성이 30% 증가했다는 보고서가 발표됐다. 특히 고객 서비스, 데이터 분석, 콘텐츠 생성 분야에서 AI 에이전트의 활용도가 급증하고 있다.",
+      //     date: "2026-01-28",
+      //     last_updated: "2026-01-30"
+      //   },
+      //   {
+      //     title: "OpenAI, 새로운 멀티모달 AI 모델 'GPT-5' 공개",
+      //     url: "https://example.com/openai-gpt5-announcement",
+      //     snippet: "OpenAI가 이미지, 비디오, 오디오를 동시에 처리할 수 있는 차세대 AI 모델 GPT-5를 공개했다. 이전 모델 대비 3배 향상된 성능을 자랑하며, 실시간 비디오 분석 기능이 추가됐다.",
+      //     date: "2026-01-25",
+      //     last_updated: null
+      //   },
+      //   {
+      //     title: "블록체인 기술, 공공 부문 디지털 전환 가속화",
+      //     url: "https://example.com/blockchain-public-sector",
+      //     snippet: "정부와 공공기관들이 블록체인 기술을 활용한 투명한 행정 시스템 구축에 나섰다. 서울시는 블록체인 기반 전자투표 시스템을 시범 운영하며 긍정적인 결과를 얻었다.",
+      //     date: "2026-01-27",
+      //     last_updated: "2026-01-29"
+      //   },
+      //   {
+      //     title: "Web3 생태계, 메타버스와 결합하며 새로운 국면 맞이",
+      //     url: "https://example.com/web3-metaverse-integration",
+      //     snippet: "Web3 기술이 메타버스 플랫폼과 결합하면서 디지털 자산 거래 시장이 활성화되고 있다. NFT 기반 가상 부동산 거래량이 전년 대비 150% 증가했다.",
+      //     date: "2026-01-26",
+      //     last_updated: null
+      //   },
+      //   {
+      //     title: "AI 기반 콘텐츠 생성 도구, 마케팅 업계 판도 변화",
+      //     url: "https://example.com/ai-content-marketing-revolution",
+      //     snippet: "AI를 활용한 자동 콘텐츠 생성 도구가 마케팅 업계에 혁신을 가져오고 있다. 기업들은 AI 도구를 통해 콘텐츠 제작 시간을 70% 단축하고 개인화된 마케팅을 실현하고 있다.",
+      //     date: "2026-01-24",
+      //     last_updated: "2026-01-28"
+      //   },
+      //   {
+      //     title: "양자 컴퓨팅, 암호화 기술의 새로운 패러다임 제시",
+      //     url: "https://example.com/quantum-computing-encryption",
+      //     snippet: "양자 컴퓨터의 발전으로 기존 암호화 방식의 보안 위협이 커지면서, 양자 내성 암호(PQC) 기술 개발이 가속화되고 있다. 주요 IT 기업들이 양자 암호 기술 표준화에 동참했다.",
+      //     date: "2026-01-23",
+      //     last_updated: null
+      //   }
+      // ];
 
-      setResults(mockResults);
+      // setResults(mockResults);
 
       // 실제 API 사용 시 아래 코드 활성화
-      // const response = await blogApi.searchRecentNews(keywords, recency, 20);
-      // setResults(response.results);
+      const response = await blogApi.searchRecentNews(keywords, recency, 20);
+      setResults(response.results);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '검색에 실패했습니다');
+      setError(err instanceof Error ? err.message : "검색에 실패했습니다");
       setResults([]);
     } finally {
       setIsSearching(false);
@@ -103,11 +112,11 @@ export function NewsSearchScreen() {
   };
 
   const recencyOptions = [
-    { value: 'hour', label: '1시간' },
-    { value: 'day', label: '24시간' },
-    { value: 'week', label: '1주일' },
-    { value: 'month', label: '1개월' },
-    { value: 'year', label: '1년' },
+    { value: "hour", label: "1시간" },
+    { value: "day", label: "24시간" },
+    { value: "week", label: "1주일" },
+    { value: "month", label: "1개월" },
+    { value: "year", label: "1년" },
   ] as const;
 
   return (
@@ -182,8 +191,8 @@ export function NewsSearchScreen() {
                     onClick={() => setRecency(option.value)}
                     className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
                       recency === option.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
                     {option.label}
@@ -226,7 +235,8 @@ export function NewsSearchScreen() {
                 <>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-900">
-                      검색 결과 <span className="text-blue-600">{results.length}</span>개
+                      검색 결과{" "}
+                      <span className="text-blue-600">{results.length}</span>개
                     </h2>
                   </div>
 
@@ -251,11 +261,10 @@ export function NewsSearchScreen() {
                                   <span>{article.date}</span>
                                 </div>
                               )}
-                              {article.last_updated && article.last_updated !== article.date && (
-                                <div>
-                                  업데이트: {article.last_updated}
-                                </div>
-                              )}
+                              {article.last_updated &&
+                                article.last_updated !== article.date && (
+                                  <div>업데이트: {article.last_updated}</div>
+                                )}
                             </div>
                           </div>
                           <a
@@ -271,12 +280,18 @@ export function NewsSearchScreen() {
                     ))}
                   </div>
                 </>
-              ) : !isSearching && (
-                <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-                  <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium">검색 결과가 없습니다</p>
-                  <p className="text-gray-400 text-sm mt-1">다른 키워드로 다시 시도해보세요</p>
-                </div>
+              ) : (
+                !isSearching && (
+                  <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+                    <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">
+                      검색 결과가 없습니다
+                    </p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      다른 키워드로 다시 시도해보세요
+                    </p>
+                  </div>
+                )
               )}
             </div>
           )}
