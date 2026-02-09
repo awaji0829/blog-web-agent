@@ -105,11 +105,15 @@ export interface RelatedTrend {
   relevance: string;
 }
 
+export type SourceCategory = 'news' | 'blog' | 'report' | 'paper' | 'official' | 'sns';
+
 export interface ResearchSource {
   url: string;
   title: string;
   type?: string;
   accessed_at?: string;
+  source_category?: SourceCategory;
+  published_date?: string | null;
 }
 
 // 아웃라인

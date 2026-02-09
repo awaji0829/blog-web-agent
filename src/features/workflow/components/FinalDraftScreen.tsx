@@ -10,6 +10,8 @@ import { DraftEditor } from "@/features/drafts/components/DraftEditor";
 import { DraftExportPanel } from "@/features/drafts/components/DraftExportPanel";
 import { DraftSeoPanel } from "@/features/drafts/components/DraftSeoPanel";
 import { DraftThumbnailPanel } from "@/features/drafts/components/DraftThumbnailPanel";
+import { DraftSourcesPanel } from "@/features/drafts/components/DraftSourcesPanel";
+import type { ResearchSource } from "@/features/workflow/types";
 
 interface OutlineSection {
   id: string;
@@ -43,6 +45,7 @@ interface FinalDraftScreenProps {
   onComplete: () => void;
   outlineData?: OutlineData | null;
   draft?: Draft | null;
+  researchSources?: ResearchSource[];
 }
 
 const LOADING_TEXTS = [
@@ -174,6 +177,7 @@ export function FinalDraftScreen({
   onComplete,
   outlineData,
   draft,
+  researchSources,
 }: FinalDraftScreenProps) {
   // Show loading screen if no draft data yet
   if (!draft) {
@@ -196,6 +200,7 @@ export function FinalDraftScreen({
       onRestart={onRestart}
       onComplete={onComplete}
       draft={draft}
+      researchSources={researchSources}
     />
   );
 }
@@ -205,10 +210,12 @@ function FinalDraftContent({
   onRestart,
   onComplete,
   draft,
+  researchSources,
 }: {
   onRestart: () => void;
   onComplete: () => void;
   draft: Draft;
+  researchSources?: ResearchSource[];
 }) {
   return (
     <div className="flex flex-col h-full w-full bg-gray-50/50">
@@ -225,6 +232,7 @@ function FinalDraftContent({
           <div className="w-full lg:w-96 space-y-6 shrink-0">
             <DraftExportPanel draft={draft} />
             <DraftSeoPanel draft={draft} />
+            <DraftSourcesPanel sources={researchSources} />
             <DraftThumbnailPanel draft={draft} />
           </div>
         </div>

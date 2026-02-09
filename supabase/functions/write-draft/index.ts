@@ -118,7 +118,7 @@ Markdown 형식으로 전체 블로그 글을 작성해주세요.
 
 ## 참고자료
 
-- 출처 1 (예: Statista, 2024)
+- 출처 1 (예: Statista 보고서)
 - 출처 2 (예: McKinsey Report)
 - 출처 3 (URL 또는 기관명)
 
@@ -176,7 +176,13 @@ serve(async (req) => {
       .eq("id", session_id);
 
     // 개요 컨텍스트 구성
+    const today = new Date().toISOString().split("T")[0];
     const outlineContext = `
+## 작성 기준일: ${today}
+- 리서치 데이터에 포함된 날짜, 연도, 수치를 임의로 변경하지 마세요
+- "올해", "최근", "현재" 등의 표현은 ${today} 기준으로 작성하세요
+- 출처의 연도는 리서치 데이터에 명시된 그대로 사용하세요
+
 ## 글 정보
 - 제목: ${outline.title}
 - 타겟 독자: ${outline.target_audience}

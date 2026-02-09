@@ -153,6 +153,7 @@ export function WorkflowContainer() {
           onComplete={handleComplete}
           outlineData={outlineAsData}
           draft={workflow.draft}
+          researchSources={workflow.research.flatMap((r) => r.sources || [])}
         />
       )}
 

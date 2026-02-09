@@ -55,16 +55,16 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a news research assistant. Search for recent news and articles related to the given keywords. Return results as a JSON array with exactly this format:
+            content: `You are a Korean news research assistant. Search for recent news and articles related to the given keywords. Return ALL results in Korean (한국어). Translate titles and summaries to Korean if the original is in another language. Return results as a JSON array with exactly this format:
 [
-  { "title": "article title", "snippet": "2-3 sentence summary of the article" },
+  { "title": "기사 제목 (한국어)", "snippet": "기사 요약 2-3문장 (한국어)" },
   ...
 ]
 Return up to ${max_results} results. Respond ONLY with the JSON array, no other text.`,
           },
           {
             role: "user",
-            content: `Find recent news about: ${query}`,
+            content: `다음 주제에 대한 최신 뉴스를 검색해주세요: ${query}`,
           },
         ],
         search_recency_filter: recency,
@@ -103,10 +103,10 @@ Return up to ${max_results} results. Respond ONLY with the JSON array, no other 
           headers: {
             "Content-Type": "application/json",
             "x-api-key": ANTHROPIC_API_KEY,
-            // "anthropic-version": "2023-06-01",
+            "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-haiku-3-5",
+            model: "claude-haiku-4-5",
             max_tokens: 4096,
             messages: [
               {
