@@ -1,31 +1,88 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { corsHeaders } from '../_shared/cors.ts';
-import { getSupabaseClient } from '../_shared/supabase.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { getSupabaseClient, requireAuth, AuthError } from '../_shared/supabase.ts';
+import { checkRateLimit, RateLimitError } from '../_shared/rateLimit.ts';
+import { sanitizeExternalContent } from '../_shared/sanitize.ts';
 
 interface RequestBody {
   session_id: string;
   url: string;
 }
 
-serve(async (req) => {
+// SSRF 방지: 허용된 스킴과 차단된 호스트 목록
+const ALLOWED_SCHEMES = ['https:'];
+const BLOCKED_HOSTNAMES = [
+  'localhost',
+  '127.0.0.1',
+  '0.0.0.0',
+  '::1',
+];
+const BLOCKED_HOST_PATTERNS = [
+  /^10\.\d+\.\d+\.\d+$/,           // 10.x.x.x (RFC 1918)
+  /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/, // 172.16-31.x.x
+  /^192\.168\.\d+\.\d+$/,           // 192.168.x.x
+  /^169\.254\.\d+\.\d+$/,           // 링크-로컬 (AWS 메타데이터)
+  /^fd[0-9a-f]{2}:/i,               // IPv6 ULA
+];
+
+function validateUrl(rawUrl: string): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('Invalid URL format');
+  }
+
+  if (!ALLOWED_SCHEMES.includes(parsed.protocol)) {
+    throw new Error(`URL scheme not allowed: ${parsed.protocol}`);
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  if (BLOCKED_HOSTNAMES.includes(hostname)) {
+    throw new Error('URL points to a blocked host');
+  }
+
+  for (const pattern of BLOCKED_HOST_PATTERNS) {
+    if (pattern.test(hostname)) {
+      throw new Error('URL points to a private/reserved IP range');
+    }
+  }
+
+  // 포트 화이트리스트: 명시적 포트가 있으면 80/443만 허용
+  if (parsed.port && parsed.port !== '443' && parsed.port !== '80') {
+    throw new Error('Non-standard ports are not allowed');
+  }
+
+  return parsed;
+}
+
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    const user = requireAuth(req);
+    await checkRateLimit(user.id, 'collect-resource');
+
     const { session_id, url } = (await req.json()) as RequestBody;
 
     if (!session_id || !url) {
       throw new Error('session_id and url are required');
     }
 
+    // SSRF 방지: URL 검증 (fetch 전에 반드시 실행)
+    const validatedUrl = validateUrl(url);
+
     const supabase = getSupabaseClient(req);
 
-    console.log(`[collect-resource] Attempting to fetch: ${url}`);
+    console.log(`[collect-resource] Attempting to fetch: ${validatedUrl.href}`);
 
-    // URL에서 콘텐츠 가져오기
-    const response = await fetch(url, {
+    // URL에서 콘텐츠 가져오기 (검증된 URL만 사용)
+    const response = await fetch(validatedUrl.href, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -59,10 +116,10 @@ serve(async (req) => {
 
     // 간단한 HTML 파싱 (제목과 본문 추출)
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const title = titleMatch ? titleMatch[1].trim() : new URL(url).hostname;
+    const title = titleMatch ? titleMatch[1].trim() : validatedUrl.hostname;
 
-    // 본문 추출 (간단한 방식 - script, style, nav, header, footer 제거)
-    let content = html
+    // 본문 추출 (script, style, nav, header, footer 제거)
+    const rawText = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
@@ -72,10 +129,8 @@ serve(async (req) => {
       .replace(/\s+/g, ' ')
       .trim();
 
-    // 최대 10000자로 제한
-    if (content.length > 10000) {
-      content = content.substring(0, 10000) + '...';
-    }
+    // 주입 패턴 제거 + XML 태그 격리 + 10000자 제한
+    const content = sanitizeExternalContent(rawText, 10000);
 
     // DB에 저장
     const { data: resource, error } = await supabase
@@ -103,17 +158,15 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('[collect-resource] Error:', error);
-    console.error('[collect-resource] Error stack:', error.stack);
+    const err = error instanceof Error ? error : new Error(String(error));
+    const status = error instanceof RateLimitError ? 429 : error instanceof AuthError ? 401 : 400;
+    const safeMessage = (error instanceof AuthError || error instanceof RateLimitError) ? err.message : 'An internal error occurred.';
+    console.error('[collect-resource] Error:', err.message);
 
     return new Response(
-      JSON.stringify({
-        error: error.message,
-        type: error.name,
-        details: 'Check Edge Function logs for more information'
-      }),
+      JSON.stringify({ error: safeMessage }),
       {
-        status: 400,
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

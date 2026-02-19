@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { corsHeaders } from '../_shared/cors.ts';
-import { getSupabaseClient } from '../_shared/supabase.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { getSupabaseClient, requireAuth, AuthError } from '../_shared/supabase.ts';
+import { checkRateLimit, RateLimitError } from '../_shared/rateLimit.ts';
 
 interface RequestBody {
   session_id: string;
@@ -161,12 +162,16 @@ async function researchWithPerplexity(
   return { result, citations };
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    const user = requireAuth(req);
+    await checkRateLimit(user.id, 'deep-research');
+
     const { session_id, insight_ids } = (await req.json()) as RequestBody;
 
     if (!session_id || !insight_ids?.length) {
@@ -261,11 +266,14 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    const status = error instanceof RateLimitError ? 429 : error instanceof AuthError ? 401 : 400;
+    const safeMessage = (error instanceof AuthError || error instanceof RateLimitError) ? err.message : 'An internal error occurred.';
+    console.error('Error:', err.message);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: safeMessage }),
       {
-        status: 400,
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

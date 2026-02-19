@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { corsHeaders } from '../_shared/cors.ts';
-import { getSupabaseClient } from '../_shared/supabase.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { getSupabaseClient, requireAuth, AuthError } from '../_shared/supabase.ts';
+import { checkRateLimit, RateLimitError } from '../_shared/rateLimit.ts';
 import { callAnthropic, parseJsonResponse } from '../_shared/anthropic.ts';
 
 interface RequestBody {
@@ -98,12 +99,16 @@ const SYSTEM_PROMPT = `당신은 콘텐츠 전략가로서 리서치 결과를 �
 
 3-5개의 섹션으로 구성하세요. 서론 1개, 본론 1-3개, 결론 1개가 적절합니다.`;
 
-serve(async (req) => {
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    const user = requireAuth(req);
+    await checkRateLimit(user.id, 'generate-outline');
+
     const { session_id, research_id } = (await req.json()) as RequestBody;
 
     if (!session_id || !research_id) {
@@ -209,11 +214,14 @@ ${session?.keywords ? `\n## 관심 키워드\n${session.keywords}` : ''}
       }
     );
   } catch (error) {
-    console.error('Error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    const status = error instanceof RateLimitError ? 429 : error instanceof AuthError ? 401 : 400;
+    const safeMessage = (error instanceof AuthError || error instanceof RateLimitError) ? err.message : 'An internal error occurred.';
+    console.error('Error:', err.message);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: safeMessage }),
       {
-        status: 400,
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

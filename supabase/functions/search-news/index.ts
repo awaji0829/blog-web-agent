@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireAuth, AuthError } from '../_shared/supabase.ts';
+import { checkRateLimit, RateLimitError } from '../_shared/rateLimit.ts';
 
 interface RequestBody {
   keywords: string[];
@@ -23,12 +25,16 @@ interface TranslatedResult {
   snippet: string;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    const user = requireAuth(req);
+    await checkRateLimit(user.id, 'search-news');
+
     const { keywords, recency = "month", max_results = 10 } =
       (await req.json()) as RequestBody;
 
@@ -157,9 +163,12 @@ ${JSON.stringify(rawResults)}
       }
     );
   } catch (error) {
-    console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+    const err = error instanceof Error ? error : new Error(String(error));
+    const status = error instanceof RateLimitError ? 429 : error instanceof AuthError ? 401 : 400;
+    const safeMessage = (error instanceof AuthError || error instanceof RateLimitError) ? err.message : 'An internal error occurred.';
+    console.error("Error:", err.message);
+    return new Response(JSON.stringify({ error: safeMessage }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

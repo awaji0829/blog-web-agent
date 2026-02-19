@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/shared/Layout';
+import { AuthGate } from '@/components/shared/AuthGate';
 import { WorkflowContainer } from '@/features/workflow/WorkflowContainer';
 import { SavedDraftsScreen } from '@/features/drafts/SavedDraftsScreen';
 import { DraftViewScreen } from '@/features/drafts/DraftViewScreen';
@@ -14,17 +15,19 @@ function AppContent() {
   };
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<WorkflowContainer />} />
-        <Route path="/saved" element={
-          <SavedDraftsScreen onNewDraft={handleNewDraft} />
-        } />
-        <Route path="/drafts/:id" element={<DraftViewScreen />} />
-        <Route path="/prompts" element={<PromptManagerScreen />} />
-        <Route path="/news" element={<NewsSearchScreen />} />
-      </Routes>
-    </Layout>
+    <AuthGate>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<WorkflowContainer />} />
+          <Route path="/saved" element={
+            <SavedDraftsScreen onNewDraft={handleNewDraft} />
+          } />
+          <Route path="/drafts/:id" element={<DraftViewScreen />} />
+          <Route path="/prompts" element={<PromptManagerScreen />} />
+          <Route path="/news" element={<NewsSearchScreen />} />
+        </Routes>
+      </Layout>
+    </AuthGate>
   );
 }
 

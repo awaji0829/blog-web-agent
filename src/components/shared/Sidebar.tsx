@@ -1,6 +1,7 @@
-import { Home, Bookmark, Settings, Newspaper, User } from "lucide-react";
+import { Home, Bookmark, Settings, Newspaper, User, LogOut } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface MenuItem {
   icon: typeof Home;
@@ -11,6 +12,7 @@ interface MenuItem {
 export function Sidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { user, signOut } = useAuth();
 
   const menuItems: MenuItem[] = [
     { icon: Home, label: "홈", path: "/" },
@@ -23,6 +25,17 @@ export function Sidebar() {
     if (path === "/") return currentPath === "/";
     return currentPath.startsWith(path);
   };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("로그아웃 실패:", err);
+    }
+  };
+
+  // 이메일 앞부분만 표시 (too long)
+  const displayName = user?.email?.split("@")[0] ?? "";
 
   return (
     <aside className="w-[80px] md:w-[240px] flex flex-col h-screen bg-[#FFF9F2] border-r border-[#F0E6D8] items-center md:items-stretch py-6 transition-all duration-300">
@@ -60,14 +73,30 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Profile Icon */}
-      <div className="px-4 pt-4 border-t border-[#F0E6D8]">
-        <button className="w-full flex items-center justify-center md:justify-start gap-3 p-2 rounded-lg hover:bg-orange-500/10 transition-colors group">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 group-hover:bg-gray-200 transition-colors">
-            <User className="w-5 h-5 text-gray-600" />
+      {/* 유저 정보 + 로그아웃 */}
+      <div className="px-4 pt-4 border-t border-[#F0E6D8] flex flex-col gap-2">
+        {/* 유저 아바타 + 이메일 */}
+        <div className="flex items-center justify-center md:justify-start gap-3 p-2">
+          <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-orange-100">
+            <User className="w-4 h-4 text-orange-600" />
           </div>
-          <span className="hidden md:block text-sm font-medium text-gray-700">
-            프로필
+          <span
+            className="hidden md:block text-xs font-medium text-gray-600 truncate max-w-[130px]"
+            title={user?.email ?? ""}
+          >
+            {displayName}
+          </span>
+        </div>
+
+        {/* 로그아웃 버튼 */}
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-center md:justify-start gap-3 p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors group"
+          title="로그아웃"
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          <span className="hidden md:block text-xs font-medium">
+            로그아웃
           </span>
         </button>
       </div>

@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
-import { getSupabaseClient } from "../_shared/supabase.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { getSupabaseClient, requireAuth, AuthError } from "../_shared/supabase.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rateLimit.ts";
 import { callAnthropic } from "../_shared/anthropic.ts";
 import { getPrompt } from "../_shared/prompts.ts";
+import { sanitizeUserInput, sanitizeStringArray } from "../_shared/sanitize.ts";
 
 interface OutlineSection {
   id: string;
@@ -138,12 +140,16 @@ primary_keywords: [핵심키워드1, 핵심키워드2, 핵심키워드3]
 
 이 필수 요소들이 모두 포함되지 않으면 불완전한 글로 간주됩니다.`;
 
-serve(async (req) => {
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    const user = requireAuth(req);
+    await checkRateLimit(user.id, 'write-draft');
+
     const { session_id, outline_id, outline } =
       (await req.json()) as RequestBody;
 
@@ -175,6 +181,18 @@ serve(async (req) => {
       .update({ status: "writing" })
       .eq("id", session_id);
 
+    // 개요 필드 정제 (프롬프트 주입 방지)
+    const safeTitle = sanitizeUserInput(outline.title ?? '', 200);
+    const safeAudience = sanitizeUserInput(outline.target_audience ?? '', 200);
+    const safeThesis = sanitizeUserInput(outline.thesis ?? '', 300);
+    const safeTone = sanitizeUserInput(outline.tone ?? '', 50);
+    const safeSections = outline.sections.map((s) => ({
+      ...s,
+      title: sanitizeUserInput(s.title, 200),
+      content: sanitizeUserInput(s.content, 1000),
+      keywords: sanitizeStringArray(s.keywords),
+    }));
+
     // 개요 컨텍스트 구성
     const today = new Date().toISOString().split("T")[0];
     const outlineContext = `
@@ -184,14 +202,14 @@ serve(async (req) => {
 - 출처의 연도는 리서치 데이터에 명시된 그대로 사용하세요
 
 ## 글 정보
-- 제목: ${outline.title}
-- 타겟 독자: ${outline.target_audience}
-- 핵심 논지: ${outline.thesis}
-- 톤앤매너: ${outline.tone}
+- 제목: ${safeTitle}
+- 타겟 독자: ${safeAudience}
+- 핵심 논지: ${safeThesis}
+- 톤앤매너: ${safeTone}
 
 ## 개요 구조
 
-${outline.sections
+${safeSections
   .map(
     (s, i) => `
 ### ${i + 1}. ${s.title} (${s.type})
@@ -314,9 +332,12 @@ ${outlineContext}`,
       },
     );
   } catch (error) {
-    console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+    const err = error instanceof Error ? error : new Error(String(error));
+    const status = error instanceof RateLimitError ? 429 : error instanceof AuthError ? 401 : 400;
+    const safeMessage = (error instanceof AuthError || error instanceof RateLimitError) ? err.message : 'An internal error occurred.';
+    console.error("Error:", err.message);
+    return new Response(JSON.stringify({ error: safeMessage }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

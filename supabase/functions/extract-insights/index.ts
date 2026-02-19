@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { corsHeaders } from '../_shared/cors.ts';
-import { getSupabaseClient } from '../_shared/supabase.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { getSupabaseClient, requireAuth, AuthError } from '../_shared/supabase.ts';
+import { checkRateLimit, RateLimitError } from '../_shared/rateLimit.ts';
+import { sanitizeUserInput } from '../_shared/sanitize.ts';
 import { callAnthropic, parseJsonResponse } from '../_shared/anthropic.ts';
 
 interface RequestBody {
@@ -67,12 +69,16 @@ const SYSTEM_PROMPT = `당신은 비즈니스/산업 분석 전문가로서 수�
 
 품질이 양보다 중요합니다. 3-7개의 의미 있는 인사이트를 추출해주세요.`;
 
-serve(async (req) => {
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    const user = requireAuth(req);
+    await checkRateLimit(user.id, 'extract-insights');
+
     const { session_id, keywords, target_audience } = (await req.json()) as RequestBody;
 
     if (!session_id) {
@@ -98,14 +104,18 @@ serve(async (req) => {
       .map((r, i) => `--- 리소스 ${i + 1}: ${r.title || 'Untitled'} ---\n${r.content || '(내용 없음)'}`)
       .join('\n\n');
 
+    // 사용자 입력 정제 (프롬프트 주입 방지)
+    const safeKeywords = keywords ? sanitizeUserInput(keywords, 200) : '';
+    const safeAudience = target_audience ? sanitizeUserInput(target_audience, 200) : '';
+
     // 컨텍스트 구성
     let context = '';
-    if (keywords) {
-      context += `\n\n## 관심 주제/키워드: ${keywords}`;
+    if (safeKeywords) {
+      context += `\n\n## 관심 주제/키워드: ${safeKeywords}`;
       context += `\n이 주제와 관련된 인사이트에 높은 관련성(relevance) 점수를 부여해주세요.`;
     }
-    if (target_audience) {
-      context += `\n\n## 타겟 독자: ${target_audience}`;
+    if (safeAudience) {
+      context += `\n\n## 타겟 독자: ${safeAudience}`;
       context += `\n이 독자에게 가치 있는 인사이트에 높은 관련성 점수를 부여해주세요.`;
     }
 
@@ -161,11 +171,14 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    const status = error instanceof RateLimitError ? 429 : error instanceof AuthError ? 401 : 400;
+    const safeMessage = (error instanceof AuthError || error instanceof RateLimitError) ? err.message : 'An internal error occurred.';
+    console.error('Error:', err.message);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: safeMessage }),
       {
-        status: 400,
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
