@@ -1,18 +1,41 @@
-import React from "react";
-import { User } from "lucide-react";
+import React, { ReactNode } from "react";
 
-export function Header() {
+interface HeaderProps {
+  title?: string;
+  subtitle?: string;
+  right?: ReactNode;
+}
+
+/** Sage TopBar — title + subtitle on the left, actions on the right. */
+export function Header({ title, subtitle, right }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between w-full h-16 px-8 border-b border-gray-100 bg-white">
-      <div className="flex items-center gap-2">
-        {/* Logo Text */}
-        <span className="text-xl font-bold tracking-tight text-gray-900">
-          SPH BLOG AGENT✍️
-        </span>
+    <header
+      className="flex items-center justify-between w-full gap-6"
+      style={{
+        padding: "22px 36px 18px",
+        borderBottom: "1px solid var(--border-sage)",
+        background: "var(--page)",
+      }}
+    >
+      <div className="min-w-0">
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 600,
+            color: "var(--ink)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.25,
+          }}
+        >
+          {title ?? "SPH"}
+        </div>
+        {subtitle && (
+          <div style={{ fontSize: 13, color: "var(--dusk)", marginTop: 4 }}>
+            {subtitle}
+          </div>
+        )}
       </div>
-      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 cursor-pointer transition-colors">
-        <User className="w-5 h-5 text-gray-600" />
-      </div>
+      <div className="flex items-center gap-3">{right}</div>
     </header>
   );
 }

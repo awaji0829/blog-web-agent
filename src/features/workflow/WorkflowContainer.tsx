@@ -71,7 +71,7 @@ export function WorkflowContainer() {
 
   // 처음부터 다시 시작
   const handleRestart = () => {
-    if (confirm("정말로 처음부터 다시 시작하시겠습니까?")) {
+    if (confirm("처음부터 다시 시작할까요? · 지금까지 작성한 내용은 사라져요")) {
       workflow.restart();
     }
   };
@@ -82,12 +82,12 @@ export function WorkflowContainer() {
       if (workflow.draft) {
         await blogApi.publishDraft(workflow.draft.id);
       }
-      alert("발행이 완료되었습니다!");
+      alert("발행했어요 · 글 목록에서 확인할 수 있어요");
       workflow.restart();
       navigate("/saved");
     } catch (err) {
-      console.error("Publish failed:", err);
-      alert("발행에 실패했습니다.");
+      console.error("발행하지 못했어요:", err);
+      alert("발행에 실패했어요 · 네트워크를 확인해 주세요");
     }
   };
 
@@ -159,9 +159,21 @@ export function WorkflowContainer() {
 
       {/* 에러 표시 */}
       {workflow.error && (
-        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg max-w-md">
-          <p className="font-medium">오류 발생</p>
-          <p className="text-sm">{workflow.error}</p>
+        <div
+          className="fixed bottom-4 right-4 max-w-md"
+          style={{
+            background: "var(--warm)",
+            border: "1px solid #d8b88e",
+            borderRadius: "var(--r-md)",
+            padding: "12px 16px",
+          }}
+        >
+          <p style={{ fontWeight: 500, color: "#7a4f1e" }}>
+            문제가 생겼어요
+          </p>
+          <p style={{ fontSize: 13, color: "#7a4f1e", marginTop: 2 }}>
+            {workflow.error} · 다시 시도해 주세요
+          </p>
         </div>
       )}
     </div>

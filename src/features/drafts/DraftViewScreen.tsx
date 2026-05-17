@@ -1,12 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import {
-  ArrowLeft,
-  Loader2,
-  AlertCircle,
-  Check,
-} from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Check } from "lucide-react";
 import { blogApi } from "@/lib/api";
 import type { DraftWithDetails } from "@/features/workflow/types";
 import { DraftEditor } from "./components/DraftEditor";
@@ -14,6 +8,14 @@ import { DraftExportPanel } from "./components/DraftExportPanel";
 import { DraftSeoPanel } from "./components/DraftSeoPanel";
 import { DraftThumbnailPanel } from "./components/DraftThumbnailPanel";
 import { DraftResourcesPanel } from "./components/DraftResourcesPanel";
+
+function StatusTag({ status }: { status: "draft" | "final" | "published" }) {
+  if (status === "published")
+    return <span className="sage-tag sage-tag--brand">발행됨</span>;
+  if (status === "final")
+    return <span className="sage-tag sage-tag--active">최종</span>;
+  return <span className="sage-tag sage-tag--neutral">초안</span>;
+}
 
 export function DraftViewScreen() {
   const { id } = useParams<{ id: string }>();
@@ -32,14 +34,12 @@ export function DraftViewScreen() {
       navigate("/saved");
       return;
     }
-
     try {
       setIsLoading(true);
-      const data = await blogApi.getDraftById(id);
-      setDraft(data);
+      setDraft(await blogApi.getDraftById(id));
     } catch (err) {
-      console.error("Failed to load draft:", err);
-      setError("Draft not found");
+      console.error("초안을 불러오지 못했어요:", err);
+      setError("not-found");
     } finally {
       setIsLoading(false);
     }
@@ -48,14 +48,13 @@ export function DraftViewScreen() {
   const handleBack = () => navigate("/saved");
 
   const handleDelete = async () => {
-    if (!confirm("정말로 이 초안을 삭제하시겠습니까?")) return;
-
+    if (!confirm("이 글을 삭제할까요?")) return;
     try {
       await blogApi.deleteDraft(draft!.id);
       navigate("/saved");
     } catch (err) {
-      alert("삭제에 실패했습니다.");
-      console.error("Delete failed:", err);
+      alert("삭제하지 못했어요 · 잠시 후 다시 시도해 주세요");
+      console.error("삭제하지 못했어요:", err);
     }
   };
 
@@ -63,87 +62,87 @@ export function DraftViewScreen() {
     try {
       await blogApi.publishDraft(draft!.id);
       setDraft((prev) => (prev ? { ...prev, status: "published" } : null));
-      alert("발행이 완료되었습니다!");
+      alert("발행했어요 · 글 목록에서 확인할 수 있어요");
     } catch (err) {
-      alert("발행에 실패했습니다.");
-      console.error("Publish failed:", err);
+      alert("발행에 실패했어요 · 네트워크를 확인해 주세요");
+      console.error("발행하지 못했어요:", err);
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <p className="ml-3 text-gray-600">초안을 불러오는 중...</p>
+      <div className="flex flex-col items-center justify-center h-full gap-3">
+        <Loader2
+          className="w-7 h-7 animate-spin"
+          style={{ color: "var(--forest)" }}
+          strokeWidth={1.5}
+        />
+        <p style={{ fontSize: 13, color: "var(--dusk)" }}>
+          글을 불러오고 있어요 · 잠깐만요
+        </p>
       </div>
     );
   }
 
-  // Error state
   if (error || !draft) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
-        <h2 className="text-xl font-bold mb-2">초안을 찾을 수 없습니다</h2>
-        <p className="text-gray-500 mb-4">삭제되었거나 잘못된 URL입니다.</p>
+      <div className="flex flex-col items-center justify-center h-full text-center px-4">
+        <div className="sage-icon-tile" style={{ width: 56, height: 56 }}>
+          <AlertCircle className="w-6 h-6" strokeWidth={1.5} />
+        </div>
+        <h3 style={{ color: "var(--ink)", margin: "16px 0 6px" }}>
+          글을 찾을 수 없어요
+        </h3>
+        <p style={{ fontSize: 13, color: "var(--dusk)", marginBottom: 16 }}>
+          삭제되었거나 주소가 잘못된 것 같아요
+        </p>
         <button
           onClick={handleBack}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
+          className="sage-btn sage-btn--primary sage-btn--sm"
         >
-          저장된 글 목록으로
+          글 목록으로
         </button>
       </div>
     );
   }
 
-  // Main UI
   return (
-    <div className="flex flex-col h-full w-full bg-gray-50/50">
-      {/* Header Bar (NO ProgressBar) */}
-      <div className="bg-white border-b border-gray-200 px-8 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBack}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold">{draft.title || "제목 없음"}</h1>
-            <span
-              className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium",
-                draft.status === "published"
-                  ? "bg-green-100 text-green-700"
-                  : draft.status === "final"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-700"
-              )}
-            >
-              {draft.status === "published"
-                ? "발행됨"
-                : draft.status === "final"
-                ? "최종"
-                : "초안"}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500">
-            {new Date(draft.created_at).toLocaleDateString("ko-KR")}
-          </p>
+    <div className="flex flex-col h-full w-full">
+      <header
+        className="flex items-center justify-between gap-6"
+        style={{
+          padding: "18px 36px",
+          borderBottom: "1px solid var(--border-sage)",
+          background: "var(--page)",
+        }}
+      >
+        <div className="flex items-center gap-4 min-w-0">
+          <button
+            onClick={handleBack}
+            style={{ color: "var(--ink-soft)" }}
+            title="글 목록"
+          >
+            <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
+          </button>
+          <h2
+            className="truncate"
+            style={{ fontSize: 22, color: "var(--ink)" }}
+          >
+            {draft.title || "제목 없는 글"}
+          </h2>
+          <StatusTag status={draft.status} />
         </div>
-      </div>
+        <p style={{ fontSize: 13, color: "var(--dusk)", whiteSpace: "nowrap" }}>
+          {new Date(draft.created_at).toLocaleDateString("ko-KR")}
+        </p>
+      </header>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto pb-20">
-        <div className="max-w-[1600px] mx-auto px-8 py-6 flex gap-8">
-          {/* Left: Editor */}
-          <div className="flex-1">
+      <div className="flex-1 overflow-y-auto pb-24">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 flex flex-col lg:flex-row gap-6">
+          <div className="flex-1 min-w-0">
             <DraftEditor draft={draft} isEditable={false} />
           </div>
-
-          {/* Right: Panels */}
-          <div className="w-96 space-y-6">
+          <div className="w-full lg:w-96 space-y-5 shrink-0">
             <DraftResourcesPanel
               resources={draft.resources}
               keywords={draft.primary_keywords}
@@ -155,26 +154,31 @@ export function DraftViewScreen() {
         </div>
       </div>
 
-      {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 px-8">
+      <div
+        className="fixed bottom-0 left-0 right-0"
+        style={{
+          background: "var(--page)",
+          borderTop: "1px solid var(--border-sage)",
+          padding: "16px 32px",
+        }}
+      >
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <button
             onClick={handleDelete}
-            className="text-red-600 font-medium hover:text-red-700"
+            className="sage-btn sage-btn--ghost"
+            style={{ color: "#7a4f1e" }}
           >
             삭제
           </button>
-          <div className="flex gap-3">
-            {draft.status !== "published" && (
-              <button
-                onClick={handlePublish}
-                className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg hover:shadow-green-200 transition-all hover:-translate-y-0.5 active:translate-y-0"
-              >
-                <Check className="w-5 h-5" />
-                발행하기
-              </button>
-            )}
-          </div>
+          {draft.status !== "published" && (
+            <button
+              onClick={handlePublish}
+              className="sage-btn sage-btn--primary sage-btn--lg"
+            >
+              <Check className="w-4 h-4" strokeWidth={1.5} />
+              발행하기
+            </button>
+          )}
         </div>
       </div>
     </div>

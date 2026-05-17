@@ -12,8 +12,18 @@ export function AuthGate({ children }: AuthGateProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFF9F2] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-3"
+        style={{ background: "var(--mist)" }}
+      >
+        <Loader2
+          className="w-6 h-6 animate-spin"
+          style={{ color: "var(--forest)" }}
+          strokeWidth={1.5}
+        />
+        <p style={{ fontSize: 13, color: "var(--dusk)" }}>
+          계정을 확인하고 있어요 · 잠깐만요
+        </p>
       </div>
     );
   }

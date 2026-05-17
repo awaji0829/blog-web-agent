@@ -1,84 +1,125 @@
+/* ─────────────────────────────────────────────────────────────
+   Sage Design System — Theme
+   따뜻한 자동화, 명료한 구조, 부담 없는 어조.
+
+   This file (1) defines Sage tokens, (2) remaps the existing
+   shadcn/Tailwind theme variables onto the Sage palette so every
+   primitive inherits the brand, and (3) ships reusable Sage
+   component classes (.sage-btn / .sage-tag / .sage-card …).
+
+   Rules enforced here: no #000/#888 · no shadows (one focus
+   halo exception) · weights capped at 600 · no gradients/blur.
+   ───────────────────────────────────────────────────────────── */
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  /* ─── Sage · brand ─── */
+  --sage:        #a2cf6c;   /* primary action, brand */
+  --sage-deep:   #8fbe56;   /* primary hover */
+  --sage-soft:   #c9dd9e;
+  --leaf:        #e0ebc4;   /* soft brand background */
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  /* ─── Sage · surface ─── */
+  --mist:        #edf2e0;   /* page background — never pure white */
+  --page:        #ffffff;   /* card surface */
+  --warm:        #f3e2cc;   /* warm tag background */
+  --clay:        #b07a50;   /* accent, used sparingly */
+
+  /* ─── Sage · text (warm inks — #000/#888 banned) ─── */
+  --ink:         #2e3a1e;   /* primary text */
+  --ink-soft:    #5f6b47;   /* secondary text */
+  --dusk:        #8b9670;   /* tertiary / meta */
+  --forest:      #5c7a2e;   /* brand-colored text */
+  --on-sage:     #1f3a0e;   /* text on a sage fill */
+
+  /* ─── Sage · line ─── */
+  --border-sage:      #d9e2c0;   /* default border */
+  --border-deep:      #bfd09a;   /* emphasized / hover border */
+
+  /* ─── typography ─── */
+  --font-sans: 'Pretendard', 'Pretendard Variable', -apple-system,
+               BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue',
+               'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+
+  --fs-xs: 12px;  --fs-sm: 13px;  --fs-base: 14px; --fs-md: 15px;
+  --fs-lg: 18px;  --fs-xl: 22px;  --fs-2xl: 28px;  --fs-3xl: 36px;
+  --fs-4xl: 44px;
+
+  --fw-regular: 400;  --fw-medium: 500;  --fw-semi: 600;
+
+  --lh-tight: 1.15;  --lh-snug: 1.4;  --lh-normal: 1.6;  --lh-relaxed: 1.65;
+  --ls-tight: -0.025em;  --ls-snug: -0.02em;  --ls-normal: -0.01em;
+  --ls-wide: 0.12em;
+
+  /* ─── spacing · 4px base ─── */
+  --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
+  --s-5: 20px;  --s-6: 24px;  --s-8: 32px;  --s-10: 40px;
+  --s-12: 48px; --s-16: 64px;
+
+  /* ─── radius ─── */
+  --r-sm: 6px;  --r-md: 10px;  --r-lg: 14px;  --r-xl: 18px;  --r-pill: 999px;
+
+  /* ─── motion ─── */
+  --ease: cubic-bezier(0.32, 0.72, 0.36, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+
+  /* ─── focus halo — the ONLY allowed shadow ─── */
+  --focus-ring: 0 0 0 3px rgba(162, 207, 108, 0.22);
+
+  /* ─────────────────────────────────────────────
+     shadcn / Tailwind compatibility layer
+     Every primitive reads these — point them at Sage.
+     ───────────────────────────────────────────── */
+  --font-size: 16px;            /* keep rem scale stable; body is 14px */
+  --background: var(--mist);
+  --foreground: var(--ink);
+  --card: var(--page);
+  --card-foreground: var(--ink);
+  --popover: var(--page);
+  --popover-foreground: var(--ink);
+  --primary: var(--sage);
+  --primary-foreground: var(--on-sage);
+  --secondary: var(--leaf);
+  --secondary-foreground: var(--forest);
+  --muted: var(--leaf);
+  --muted-foreground: var(--dusk);
+  --accent: var(--leaf);
+  --accent-foreground: var(--forest);
+  --destructive: var(--clay);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-sage);
+  --input: var(--border-sage);
+  --input-background: var(--page);
+  --switch-background: var(--border-deep);
+  --ring: var(--sage);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+
+  --chart-1: var(--sage);
+  --chart-2: var(--forest);
+  --chart-3: var(--clay);
+  --chart-4: var(--sage-soft);
+  --chart-5: var(--dusk);
+
+  --radius: 10px;               /* sm 6 · md 8 · lg 10 · xl 14 */
+
+  --sidebar: var(--page);
+  --sidebar-foreground: var(--ink-soft);
+  --sidebar-primary: var(--sage);
+  --sidebar-primary-foreground: var(--on-sage);
+  --sidebar-accent: var(--leaf);
+  --sidebar-accent-foreground: var(--forest);
+  --sidebar-border: var(--border-sage);
+  --sidebar-ring: var(--sage);
 }
 
 @theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -105,10 +146,28 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  /* Sage palette exposed as Tailwind colors (bg-sage, text-ink …) */
+  --color-sage: var(--sage);
+  --color-sage-deep: var(--sage-deep);
+  --color-sage-soft: var(--sage-soft);
+  --color-leaf: var(--leaf);
+  --color-mist: var(--mist);
+  --color-page: var(--page);
+  --color-warm: var(--warm);
+  --color-clay: var(--clay);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-dusk: var(--dusk);
+  --color-forest: var(--forest);
+  --color-on-sage: var(--on-sage);
+  --color-border-deep: var(--border-deep);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -126,56 +185,279 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    line-height: var(--lh-normal);
+    letter-spacing: var(--ls-normal);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
 
   html {
     font-size: var(--font-size);
   }
 
+  /* Sage type scale — weights capped at 600, emphasis by color/size. */
   h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--fs-3xl);
+    font-weight: var(--fw-semi);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--ls-tight);
   }
-
   h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--fs-2xl);
+    font-weight: var(--fw-semi);
+    line-height: 1.25;
+    letter-spacing: var(--ls-snug);
   }
-
   h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--fs-lg);
+    font-weight: var(--fw-medium);
+    line-height: var(--lh-snug);
+    letter-spacing: -0.015em;
   }
-
   h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--fs-md);
+    font-weight: var(--fw-medium);
+    line-height: var(--lh-snug);
   }
-
   label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-medium);
     line-height: 1.5;
   }
-
   button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-weight: var(--fw-medium);
+  }
+  input,
+  textarea {
+    font-size: var(--fs-base);
+    font-weight: var(--fw-regular);
   }
 
-  input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
+  /* Weights 700+ are banned by spec — clamp anything that asks. */
+  .font-bold,
+  .font-extrabold,
+  .font-black,
+  [class*='font-bold'] {
+    font-weight: var(--fw-semi) !important;
+  }
+
+  ::selection {
+    background: var(--sage-soft);
+    color: var(--ink);
   }
 }
+
+/* ─────────────────────────────────────────────
+   Shadows are forbidden. Neutralize Tailwind/shadcn
+   shadow utilities globally; the sage focus halo is
+   reintroduced explicitly below. (ring-* utilities use
+   their own class names and are untouched here.)
+   ───────────────────────────────────────────── */
+.shadow-2xs, .shadow-xs, .shadow-sm, .shadow,
+.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl,
+.drop-shadow-xs, .drop-shadow-sm, .drop-shadow,
+.drop-shadow-md, .drop-shadow-lg {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* ─────────────────────────────────────────────
+   Sage component classes — use these directly.
+   Built to spec; mirrors tokens.css from the system.
+   ───────────────────────────────────────────── */
+
+.sage-btn {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-normal);
+  line-height: 1;
+  padding: 10px 18px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background var(--dur-base) var(--ease),
+              border-color var(--dur-base) var(--ease),
+              color var(--dur-base) var(--ease),
+              transform var(--dur-fast) var(--ease);
+}
+.sage-btn:active { transform: scale(0.98); }
+.sage-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sage-btn--primary { background: var(--sage); color: var(--on-sage); }
+.sage-btn--primary:hover:not(:disabled) { background: var(--sage-deep); }
+
+.sage-btn--secondary {
+  background: var(--page);
+  color: var(--ink);
+  border-color: var(--border-deep);
+}
+.sage-btn--secondary:hover:not(:disabled) {
+  background: var(--leaf);
+  border-color: var(--sage);
+}
+
+.sage-btn--ghost {
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 10px 14px;
+}
+.sage-btn--ghost:hover:not(:disabled) {
+  background: var(--leaf);
+  color: var(--ink);
+}
+
+.sage-btn--sm { padding: 7px 12px; font-size: var(--fs-sm); }
+.sage-btn--lg { padding: 12px 22px; font-size: var(--fs-md); }
+
+.sage-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+.sage-tag--brand   { background: var(--leaf); color: var(--forest); }
+.sage-tag--warm    { background: var(--warm); color: #7a4f1e; }
+.sage-tag--neutral { background: var(--mist); color: var(--ink-soft); border-color: var(--border-sage); }
+.sage-tag--active  { background: var(--sage); color: var(--on-sage); }
+
+.sage-input,
+.sage-textarea,
+.sage-select {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  color: var(--ink);
+  background: var(--page);
+  border: 1px solid var(--border-sage);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color var(--dur-base) var(--ease),
+              box-shadow var(--dur-base) var(--ease);
+}
+.sage-input:focus,
+.sage-textarea:focus,
+.sage-select:focus {
+  border-color: var(--sage);
+  box-shadow: var(--focus-ring);
+}
+.sage-input::placeholder,
+.sage-textarea::placeholder { color: var(--dusk); }
+.sage-textarea { min-height: 96px; line-height: var(--lh-normal); resize: vertical; }
+
+.sage-card {
+  background: var(--page);
+  border: 1px solid var(--border-sage);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  transition: border-color var(--dur-base) var(--ease);
+}
+.sage-card--hover:hover { border-color: var(--border-deep); }
+
+.sage-toggle {
+  position: relative;
+  width: 36px;
+  height: 22px;
+  background: var(--border-deep);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  transition: background var(--dur-base) var(--ease);
+}
+.sage-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--dur-base) var(--ease);
+}
+.sage-toggle--on { background: var(--sage); }
+.sage-toggle--on::after { transform: translateX(14px); }
+
+.sage-progress {
+  width: 100%;
+  height: 6px;
+  background: var(--mist);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.sage-progress__fill {
+  height: 100%;
+  background: var(--sage);
+  border-radius: var(--r-pill);
+  transition: width var(--dur-base) var(--ease);
+}
+
+.sage-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--dusk);
+}
+
+.sage-metric {
+  background: var(--leaf);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+}
+.sage-metric__label { font-size: var(--fs-xs); color: var(--forest); font-weight: var(--fw-medium); margin-bottom: 4px; }
+.sage-metric__value { font-size: var(--fs-xl); font-weight: var(--fw-semi); color: var(--ink); letter-spacing: var(--ls-snug); line-height: 1.2; }
+.sage-metric__delta { font-size: var(--fs-xs); color: var(--forest); margin-top: 2px; font-family: var(--font-mono); }
+
+.sage-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--leaf);
+  color: var(--forest);
+  border-radius: var(--r-md);
+  flex-shrink: 0;
+}
+
+/* The single dark surface in the system: code blocks. */
+.sage-code {
+  background: var(--ink);
+  color: var(--leaf);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  overflow: auto;
+}
+
+/* The one looping animation allowed: the generating indicator. */
+@keyframes sage-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+.sage-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sage);
+  display: inline-block;
+  animation: sage-pulse 1.2s var(--ease) infinite;
+}
+.sage-dot:nth-child(2) { animation-delay: 0.15s; }
+.sage-dot:nth-child(3) { animation-delay: 0.3s; }

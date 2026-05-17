@@ -26,7 +26,6 @@ export function DraftEditor({
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Handle text selection for AI tooltip
   useEffect(() => {
     const handleSelection = () => {
       const selection = window.getSelection();
@@ -35,52 +34,61 @@ export function DraftEditor({
         selection.toString().length > 0 &&
         editorRef.current?.contains(selection.anchorNode)
       ) {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-
-        setTooltipPos({
-          x: rect.left + rect.width / 2,
-          y: rect.top - 10,
-        });
+        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
         setShowAiTooltip(true);
       } else {
         setShowAiTooltip(false);
       }
     };
-
     document.addEventListener("mouseup", handleSelection);
     document.addEventListener("keyup", handleSelection);
-
     return () => {
       document.removeEventListener("mouseup", handleSelection);
       document.removeEventListener("keyup", handleSelection);
     };
   }, []);
 
-  // Convert markdown content to HTML for display
   const renderContent = () => {
     if (!draft.content) return null;
-
-    // Simple markdown to HTML conversion for display
     const html = draft.content
-      .replace(/^# (.+)$/gm, '<h1 class="text-4xl font-extrabold text-gray-900 mb-4">$1</h1>')
-      .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold text-gray-800 mt-8 mb-4">$1</h2>')
-      .replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold text-gray-800 mt-6 mb-3">$1</h3>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(
+        /^# (.+)$/gm,
+        '<h1 style="font-size:36px;font-weight:600;color:var(--ink);letter-spacing:-0.025em;line-height:1.15;margin:0 0 16px">$1</h1>',
+      )
+      .replace(
+        /^## (.+)$/gm,
+        '<h2 style="font-size:24px;font-weight:600;color:var(--ink);letter-spacing:-0.02em;margin:32px 0 14px">$1</h2>',
+      )
+      .replace(
+        /^### (.+)$/gm,
+        '<h3 style="font-size:18px;font-weight:500;color:var(--ink);margin:24px 0 12px">$1</h3>',
+      )
+      .replace(
+        /\*\*(.+?)\*\*/g,
+        '<span style="color:var(--forest)">$1</span>',
+      )
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">$1</blockquote>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>\n?)+/g, '<ul class="list-disc list-inside space-y-1 my-4">$&</ul>')
-      .replace(/\n\n/g, '</p><p class="my-4">')
-      .replace(/^(?!<[h|u|b|l])(.+)$/gm, '<p class="my-4">$1</p>');
-
+      .replace(
+        /^> (.+)$/gm,
+        '<blockquote style="border-left:3px solid var(--border-deep);padding-left:16px;color:var(--ink-soft);margin:16px 0">$1</blockquote>',
+      )
+      .replace(/^- (.+)$/gm, "<li>$1</li>")
+      .replace(
+        /(<li>.*<\/li>\n?)+/g,
+        '<ul style="list-style:disc;padding-left:22px;margin:16px 0;line-height:1.7">$&</ul>',
+      )
+      .replace(/\n\n/g, '</p><p style="margin:16px 0;line-height:1.8">')
+      .replace(
+        /^(?!<[h|u|b|l])(.+)$/gm,
+        '<p style="margin:16px 0;line-height:1.8">$1</p>',
+      );
     return { __html: html };
   };
 
   const handleInput = () => {
-    if (onContentChange && editorRef.current) {
+    if (onContentChange && editorRef.current)
       onContentChange(editorRef.current.innerText);
-    }
   };
 
   const draftTitle = draft.title || "블로그 제목";
@@ -88,29 +96,49 @@ export function DraftEditor({
 
   return (
     <>
-      {/* Floating AI Tooltip */}
       {showAiTooltip && isEditable && (
         <div
-          className="fixed z-50 transform -translate-x-1/2 -translate-y-full mb-2 bg-gray-900 text-white text-xs py-1.5 px-3 rounded-lg shadow-xl flex items-center gap-2 animate-in fade-in zoom-in duration-150 cursor-pointer hover:bg-black"
-          style={{ left: tooltipPos.x, top: tooltipPos.y }}
+          className="fixed z-50 -translate-x-1/2 -translate-y-full flex items-center gap-2 cursor-pointer"
+          style={{
+            left: tooltipPos.x,
+            top: tooltipPos.y,
+            background: "var(--ink)",
+            color: "var(--leaf)",
+            fontSize: 12,
+            padding: "6px 12px",
+            borderRadius: "var(--r-sm)",
+          }}
           onMouseDown={(e) => {
             e.preventDefault();
-            alert("AI 문장 다듬기 기능이 실행됩니다.");
+            alert("AI 문장 다듬기를 시작할게요");
           }}
         >
-          <Wand2 className="w-3 h-3 text-purple-400" />
+          <Wand2
+            className="w-3 h-3"
+            style={{ color: "var(--sage)" }}
+            strokeWidth={1.5}
+          />
           AI 문장 다듬기
         </div>
       )}
 
-      {/* Editor */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 min-h-[800px] p-12 relative">
+      <div
+        className="min-h-[800px] relative"
+        style={{
+          background: "var(--page)",
+          border: "1px solid var(--border-sage)",
+          borderRadius: "var(--r-xl)",
+          padding: 48,
+          color: "var(--ink)",
+        }}
+      >
         {draft.content ? (
           <div
             ref={editorRef}
             contentEditable={isEditable}
             onInput={handleInput}
-            className="max-w-3xl mx-auto outline-none prose prose-lg prose-blue focus:prose-headings:text-blue-600"
+            className="max-w-3xl mx-auto outline-none"
+            style={{ fontSize: 15, lineHeight: 1.8 }}
             suppressContentEditableWarning
             dangerouslySetInnerHTML={renderContent() || undefined}
           />
@@ -119,14 +147,28 @@ export function DraftEditor({
             ref={editorRef}
             contentEditable={isEditable}
             onInput={handleInput}
-            className="max-w-3xl mx-auto outline-none prose prose-lg prose-blue focus:prose-headings:text-blue-600"
+            className="max-w-3xl mx-auto outline-none"
             suppressContentEditableWarning
           >
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
+            <h1
+              style={{
+                fontSize: 36,
+                fontWeight: 600,
+                color: "var(--ink)",
+                letterSpacing: "-0.025em",
+                marginBottom: 16,
+              }}
+            >
               {draftTitle}
             </h1>
             {draftSubtitle && (
-              <p className="text-gray-500 text-xl font-light mb-8">
+              <p
+                style={{
+                  color: "var(--ink-soft)",
+                  fontSize: 18,
+                  marginBottom: 32,
+                }}
+              >
                 {draftSubtitle}
               </p>
             )}

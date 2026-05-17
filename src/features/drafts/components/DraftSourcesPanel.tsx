@@ -1,17 +1,29 @@
-import { ExternalLink, Calendar, Newspaper, BookOpen, FileBarChart, GraduationCap, Globe, MessageCircle } from "lucide-react";
+import {
+  ExternalLink,
+  Calendar,
+  Newspaper,
+  BookOpen,
+  FileBarChart,
+  GraduationCap,
+  Globe,
+  MessageCircle,
+} from "lucide-react";
 import type { ResearchSource, SourceCategory } from "@/features/workflow/types";
 
 interface DraftSourcesPanelProps {
   sources?: ResearchSource[];
 }
 
-const CATEGORY_CONFIG: Record<SourceCategory, { label: string; color: string; icon: typeof Newspaper }> = {
-  news: { label: '뉴스', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Newspaper },
-  blog: { label: '블로그', color: 'bg-green-50 text-green-700 border-green-200', icon: BookOpen },
-  report: { label: '보고서', color: 'bg-purple-50 text-purple-700 border-purple-200', icon: FileBarChart },
-  paper: { label: '논문', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: GraduationCap },
-  official: { label: '공식', color: 'bg-red-50 text-red-700 border-red-200', icon: Globe },
-  sns: { label: 'SNS', color: 'bg-pink-50 text-pink-700 border-pink-200', icon: MessageCircle },
+const CATEGORY_CONFIG: Record<
+  SourceCategory,
+  { label: string; variant: string; icon: typeof Newspaper }
+> = {
+  news: { label: "뉴스", variant: "sage-tag--brand", icon: Newspaper },
+  blog: { label: "블로그", variant: "sage-tag--brand", icon: BookOpen },
+  report: { label: "보고서", variant: "sage-tag--neutral", icon: FileBarChart },
+  paper: { label: "논문", variant: "sage-tag--neutral", icon: GraduationCap },
+  official: { label: "공식", variant: "sage-tag--warm", icon: Globe },
+  sns: { label: "SNS", variant: "sage-tag--warm", icon: MessageCircle },
 };
 
 function formatDate(dateStr: string | null | undefined): string | null {
@@ -19,7 +31,11 @@ function formatDate(dateStr: string | null | undefined): string | null {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return null;
-    return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   } catch {
     return null;
   }
@@ -29,52 +45,92 @@ export function DraftSourcesPanel({ sources }: DraftSourcesPanelProps) {
   if (!sources || sources.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="sage-card">
       <div className="flex items-center gap-2 mb-4">
-        <BookOpen className="w-5 h-5 text-gray-700" />
-        <h3 className="font-bold text-gray-900">참고 출처</h3>
-        <span className="text-xs text-gray-400 ml-auto">{sources.length}개</span>
+        <BookOpen
+          className="w-4 h-4"
+          style={{ color: "var(--forest)" }}
+          strokeWidth={1.5}
+        />
+        <h3 className="sage-eyebrow">참고 출처</h3>
+        <span
+          className="ml-auto"
+          style={{ fontSize: 12, color: "var(--dusk)" }}
+        >
+          {sources.length}개
+        </span>
       </div>
 
       <div className="space-y-2">
         {sources.map((source, i) => {
-          const category = source.source_category || 'news';
+          const category = source.source_category || "news";
           const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.news;
           const IconComponent = config.icon;
           const displayDate = formatDate(source.published_date);
-          const displayTitle = source.title || source.url || '출처 없음';
+          const displayTitle = source.title || source.url || "출처 없음";
 
           return (
             <div
               key={i}
-              onClick={() => source.url && window.open(source.url, '_blank', 'noopener,noreferrer')}
-              className={`group px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 hover:shadow-sm transition-all ${
-                source.url ? 'cursor-pointer' : ''
-              }`}
+              onClick={() =>
+                source.url &&
+                window.open(source.url, "_blank", "noopener,noreferrer")
+              }
+              className="group"
+              style={{
+                padding: "10px 12px",
+                borderRadius: "var(--r-md)",
+                background: "var(--mist)",
+                border: "1px solid var(--border-sage)",
+                cursor: source.url ? "pointer" : undefined,
+                transition: "border-color var(--dur-base) var(--ease)",
+              }}
+              onMouseEnter={(e) => {
+                if (source.url)
+                  e.currentTarget.style.borderColor = "var(--border-deep)";
+              }}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.borderColor = "var(--border-sage)")
+              }
             >
               <div className="flex items-start gap-2.5">
-                {/* Badge */}
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border shrink-0 ${config.color}`}>
-                  <IconComponent className="w-3 h-3" />
+                <span
+                  className={`sage-tag ${config.variant} shrink-0`}
+                  style={{ fontSize: 11 }}
+                >
+                  <IconComponent className="w-3 h-3" strokeWidth={1.5} />
                   {config.label}
                 </span>
 
-                {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate leading-tight">
+                  <p
+                    className="truncate"
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      lineHeight: 1.3,
+                    }}
+                  >
                     {displayTitle}
                   </p>
                   {displayDate && (
-                    <p className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                      <Calendar className="w-3 h-3" />
+                    <p
+                      className="flex items-center gap-1 mt-1"
+                      style={{ fontSize: 12, color: "var(--dusk)" }}
+                    >
+                      <Calendar className="w-3 h-3" strokeWidth={1.5} />
                       {displayDate}
                     </p>
                   )}
                 </div>
 
-                {/* External link icon */}
                 {source.url && (
-                  <ExternalLink className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-500 shrink-0 mt-0.5 transition-colors" />
+                  <ExternalLink
+                    className="w-3.5 h-3.5 shrink-0 mt-0.5"
+                    style={{ color: "var(--dusk)" }}
+                    strokeWidth={1.5}
+                  />
                 )}
               </div>
             </div>

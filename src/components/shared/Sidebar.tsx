@@ -1,103 +1,151 @@
-import { Home, Bookmark, Settings, Newspaper, User, LogOut } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  FileText,
+  Newspaper,
+  SlidersHorizontal,
+  Plus,
+  LogOut,
+} from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
 interface MenuItem {
-  icon: typeof Home;
+  icon: typeof LayoutDashboard;
   label: string;
   path: string;
 }
 
 export function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const { user, signOut } = useAuth();
 
   const menuItems: MenuItem[] = [
-    { icon: Home, label: "홈", path: "/" },
-    { icon: Bookmark, label: "저장됨", path: "/saved" },
+    { icon: LayoutDashboard, label: "대시보드", path: "/dashboard" },
+    { icon: FileText, label: "글", path: "/saved" },
     { icon: Newspaper, label: "뉴스 검색", path: "/news" },
-    { icon: Settings, label: "프롬프트(베타)", path: "/prompts" },
+    { icon: SlidersHorizontal, label: "프롬프트", path: "/prompts" },
   ];
 
   const isActive = (path: string) => {
-    if (path === "/") return currentPath === "/";
-    return currentPath.startsWith(path);
+    if (path === "/dashboard") return currentPath === "/dashboard";
+    return currentPath === path || currentPath.startsWith(path + "/");
   };
 
   const handleSignOut = async () => {
     try {
       await signOut();
     } catch (err) {
-      console.error("로그아웃 실패:", err);
+      console.error("로그아웃 중 문제가 생겼어요:", err);
     }
   };
 
-  // 이메일 앞부분만 표시 (too long)
-  const displayName = user?.email?.split("@")[0] ?? "";
+  const displayName = user?.email?.split("@")[0] ?? "사용자";
+  const initial = displayName.slice(0, 1).toUpperCase();
 
   return (
-    <aside className="w-[80px] md:w-[240px] flex flex-col h-screen bg-[#FFF9F2] border-r border-[#F0E6D8] items-center md:items-stretch py-6 transition-all duration-300">
+    <aside
+      className="flex flex-col h-screen flex-shrink-0 w-[72px] md:w-[232px] transition-all duration-300"
+      style={{
+        background: "var(--page)",
+        borderRight: "1px solid var(--border-sage)",
+      }}
+    >
       {/* Logo */}
-      <div className="mb-8 px-4 flex justify-center md:justify-start">
-        <span className="hidden md:block text-xl font-bold tracking-tight text-gray-900">
-          SPH BLOG AGENT✍️
-        </span>
-        <div className="w-8 h-8 bg-orange-500/20 rounded-lg md:hidden flex items-center justify-center">
-          <span className="text-lg">✍️</span>
-        </div>
+      <div className="flex items-center justify-center md:justify-start px-4 md:px-[22px] pt-[22px] pb-4">
+        <img
+          src="/image/logo-sph.png"
+          alt="SPH"
+          className="hidden md:block h-7 w-auto"
+        />
+        <img
+          src="/image/logo-mark.svg"
+          alt="SPH"
+          className="md:hidden h-7 w-7"
+        />
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 flex flex-col gap-6 w-full">
-        {menuItems.map((item) => (
-          <Link
-            key={item.label}
-            to={item.path}
-            className={cn(
-              "flex flex-col md:flex-row items-center md:px-6 gap-2 md:gap-4 text-gray-500 hover:text-black transition-colors group",
-              isActive(item.path) && "text-black",
-            )}
-          >
-            <item.icon
+      {/* Primary action — exactly one per screen */}
+      <div className="px-3 pb-3">
+        <button
+          onClick={() => navigate("/")}
+          className="sage-btn sage-btn--primary w-full"
+          title="새 글 작성"
+        >
+          <Plus className="w-4 h-4" strokeWidth={1.5} />
+          <span className="hidden md:inline">새 글 작성</span>
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 flex flex-col gap-0.5 px-2.5 py-2">
+        {menuItems.map((item) => {
+          const active = isActive(item.path);
+          return (
+            <Link
+              key={item.label}
+              to={item.path}
               className={cn(
-                "w-6 h-6 group-hover:scale-110 transition-transform",
-                isActive(item.path) && "text-blue-600",
+                "flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-[10px]",
+                "text-sm transition-colors duration-200",
               )}
-            />
-            <span className="text-[10px] md:text-sm font-medium">
-              {item.label}
-            </span>
-          </Link>
-        ))}
+              style={{
+                color: active ? "var(--forest)" : "var(--ink-soft)",
+                background: active ? "var(--leaf)" : "transparent",
+                fontWeight: 500,
+                letterSpacing: "-0.01em",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = "var(--mist)";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <item.icon className="w-[18px] h-[18px]" strokeWidth={1.5} />
+              <span className="hidden md:inline">{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* 유저 정보 + 로그아웃 */}
-      <div className="px-4 pt-4 border-t border-[#F0E6D8] flex flex-col gap-2">
-        {/* 유저 아바타 + 이메일 */}
-        <div className="flex items-center justify-center md:justify-start gap-3 p-2">
-          <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-orange-100">
-            <User className="w-4 h-4 text-orange-600" />
-          </div>
-          <span
-            className="hidden md:block text-xs font-medium text-gray-600 truncate max-w-[130px]"
-            title={user?.email ?? ""}
+      {/* User block */}
+      <div
+        className="px-2.5 pt-2.5 pb-5"
+        style={{ borderTop: "1px solid var(--border-sage)" }}
+      >
+        <div className="flex items-center gap-2.5 px-3 py-2.5">
+          <div
+            className="flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0"
+            style={{
+              background: "var(--leaf)",
+              color: "var(--forest)",
+              fontSize: 13,
+              fontWeight: 500,
+            }}
           >
-            {displayName}
-          </span>
+            {initial}
+          </div>
+          <div className="hidden md:flex flex-col min-w-0">
+            <span
+              className="truncate"
+              style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}
+              title={user?.email ?? ""}
+            >
+              {displayName}
+            </span>
+            <span style={{ fontSize: 11, color: "var(--dusk)" }}>내 계정</span>
+          </div>
         </div>
-
-        {/* 로그아웃 버튼 */}
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center md:justify-start gap-3 p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors group"
+          className="sage-btn sage-btn--ghost w-full justify-center md:justify-start mt-1"
           title="로그아웃"
         >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          <span className="hidden md:block text-xs font-medium">
-            로그아웃
-          </span>
+          <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+          <span className="hidden md:inline">로그아웃</span>
         </button>
       </div>
     </aside>

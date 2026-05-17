@@ -3,23 +3,41 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   FileText,
-  Calendar,
-  Eye,
   Trash2,
   BarChart3,
   Loader2,
   Plus,
   Search,
-  ChevronRight,
   Link as LinkIcon,
-  Tag,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { blogApi } from "@/lib/api";
 import type { DraftWithDetails } from "@/features/workflow/types";
 
 interface SavedDraftsScreenProps {
   onNewDraft: () => void;
+}
+
+type StatusKey = "all" | "published" | "final" | "draft";
+
+const FILTERS: { id: StatusKey; label: string }[] = [
+  { id: "all", label: "전체" },
+  { id: "published", label: "발행됨" },
+  { id: "final", label: "최종" },
+  { id: "draft", label: "초안" },
+];
+
+function statusDotTone(status: "draft" | "final" | "published") {
+  if (status === "published") return "var(--sage)";
+  if (status === "final") return "var(--forest)";
+  return "var(--dusk)";
+}
+
+function StatusTag({ status }: { status: "draft" | "final" | "published" }) {
+  if (status === "published")
+    return <span className="sage-tag sage-tag--brand">발행됨</span>;
+  if (status === "final")
+    return <span className="sage-tag sage-tag--active">최종</span>;
+  return <span className="sage-tag sage-tag--neutral">초안</span>;
 }
 
 export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
@@ -28,6 +46,7 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<StatusKey>("all");
 
   useEffect(() => {
     loadDrafts();
@@ -40,8 +59,8 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
       const data = await blogApi.getAllDrafts();
       setDrafts(data);
     } catch (err) {
-      console.error("Failed to load drafts:", err);
-      setError("저장된 초안을 불러오는데 실패했습니다.");
+      console.error("초안을 불러오지 못했어요:", err);
+      setError("글을 불러오지 못했어요 · 다시 시도해 주세요");
     } finally {
       setIsLoading(false);
     }
@@ -49,239 +68,280 @@ export function SavedDraftsScreen({ onNewDraft }: SavedDraftsScreenProps) {
 
   const handleDelete = async (draftId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("정말로 이 초안을 삭제하시겠습니까?")) return;
-
+    if (!confirm("이 글을 삭제할까요?")) return;
     try {
       await blogApi.deleteDraft(draftId);
       setDrafts((prev) => prev.filter((d) => d.id !== draftId));
     } catch (err) {
-      console.error("Failed to delete draft:", err);
-      alert("삭제에 실패했습니다.");
+      console.error("삭제하지 못했어요:", err);
+      alert("삭제하지 못했어요 · 잠시 후 다시 시도해 주세요");
     }
   };
 
-  const filteredDrafts = drafts.filter(
-    (draft) =>
+  const filteredDrafts = drafts.filter((draft) => {
+    const matchesStatus = filter === "all" || draft.status === filter;
+    const matchesSearch =
       draft.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      draft.content?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+      draft.content?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesStatus && (!searchQuery || matchesSearch);
+  });
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ko-KR", {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("ko-KR", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-  };
-
-  const getStatusBadge = (status: "draft" | "final" | "published") => {
-    switch (status) {
-      case "published":
-        return (
-          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-            발행됨
-          </span>
-        );
-      case "final":
-        return (
-          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-            최종
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-            초안
-          </span>
-        );
-    }
-  };
 
   return (
-    <div className="flex flex-col h-full w-full bg-gray-50/50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">저장된 초안</h1>
-            <button
-              onClick={onNewDraft}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />새 글 작성
-            </button>
+    <div className="flex flex-col h-full w-full">
+      {/* TopBar */}
+      <header
+        className="flex items-center justify-between gap-6"
+        style={{
+          padding: "22px 36px 18px",
+          borderBottom: "1px solid var(--border-sage)",
+          background: "var(--page)",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              color: "var(--ink)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            글
           </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="제목 또는 내용으로 검색..."
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
+          <div style={{ fontSize: 13, color: "var(--dusk)", marginTop: 4 }}>
+            작성한 글을 모아 두고 발행 상태를 확인할 수 있어요
           </div>
         </div>
-      </div>
+        <button
+          onClick={onNewDraft}
+          className="sage-btn sage-btn--primary"
+        >
+          <Plus className="w-4 h-4" strokeWidth={1.5} />새 글 작성
+        </button>
+      </header>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-        <div className="max-w-5xl mx-auto">
+      <div className="flex-1 overflow-y-auto" style={{ padding: "24px 36px 36px" }}>
+        <div className="max-w-5xl mx-auto flex flex-col gap-[18px]">
+          {/* Filters + search */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={`sage-tag ${
+                    filter === f.id ? "sage-tag--active" : "sage-tag--neutral"
+                  }`}
+                  style={{ cursor: "pointer", padding: "6px 14px", fontSize: 13 }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div className="relative" style={{ width: 260 }}>
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                style={{ color: "var(--dusk)" }}
+                strokeWidth={1.5}
+              />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="글 검색"
+                className="sage-input"
+                style={{ paddingLeft: 36 }}
+              />
+            </div>
+          </div>
+
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
-              <p className="text-gray-500">초안을 불러오는 중...</p>
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Loader2
+                className="w-7 h-7 animate-spin"
+                style={{ color: "var(--forest)" }}
+                strokeWidth={1.5}
+              />
+              <p style={{ fontSize: 13, color: "var(--dusk)" }}>
+                글을 불러오고 있어요 · 잠깐만요
+              </p>
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <p className="text-red-500 mb-4">{error}</p>
+            <div
+              className="sage-card flex flex-col items-center justify-center text-center"
+              style={{ padding: "48px 24px" }}
+            >
+              <p style={{ color: "var(--ink-soft)", marginBottom: 16 }}>
+                {error}
+              </p>
               <button
                 onClick={loadDrafts}
-                className="text-blue-600 hover:underline"
+                className="sage-btn sage-btn--secondary sage-btn--sm"
               >
                 다시 시도
               </button>
             </div>
           ) : filteredDrafts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <FileText className="w-8 h-8 text-gray-400" />
+            <div
+              className="sage-card flex flex-col items-center justify-center text-center"
+              style={{ padding: "48px 24px" }}
+            >
+              <div
+                className="sage-icon-tile"
+                style={{ width: 56, height: 56 }}
+              >
+                <FileText className="w-6 h-6" strokeWidth={1.5} />
               </div>
-              <p className="text-gray-500 mb-4">
-                {searchQuery
-                  ? "검색 결과가 없습니다."
-                  : "저장된 초안이 없습니다."}
-              </p>
-              {!searchQuery && (
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 500,
+                  color: "var(--ink)",
+                  marginTop: 16,
+                  marginBottom: 6,
+                }}
+              >
+                {searchQuery || filter !== "all"
+                  ? "조건에 맞는 글이 없어요"
+                  : "아직 작성된 글이 없어요"}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--dusk)", marginBottom: 16 }}>
+                {searchQuery || filter !== "all"
+                  ? "필터를 바꾸거나 검색어를 다시 확인해 주세요"
+                  : "첫 글을 시작해 보세요 · 약 1분이면 충분해요"}
+              </div>
+              {!searchQuery && filter === "all" && (
                 <button
                   onClick={onNewDraft}
-                  className="text-blue-600 hover:underline font-medium"
+                  className="sage-btn sage-btn--primary sage-btn--sm"
                 >
-                  첫 번째 글을 작성해보세요
+                  <Plus className="w-4 h-4" strokeWidth={1.5} />새 글 작성
                 </button>
               )}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
               {filteredDrafts.map((draft, index) => (
                 <motion.div
                   key={draft.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.04 }}
                   onClick={() => navigate(`/drafts/${draft.id}`)}
-                  className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer group"
+                  className="group"
+                  style={{
+                    background: "var(--page)",
+                    border: "1px solid var(--border-sage)",
+                    borderRadius: "var(--r-lg)",
+                    padding: 20,
+                    cursor: "pointer",
+                    transition: "border-color var(--dur-base) var(--ease)",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.borderColor = "var(--border-deep)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.borderColor = "var(--border-sage)")
+                  }
                 >
-                  <div className="flex items-start gap-6">
-                    {/* Left: Main Content */}
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        {getStatusBadge(draft.status)}
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(draft.created_at)}
-                        </span>
+                      <div
+                        className="flex items-center gap-2 mb-2.5"
+                        style={{ fontSize: 12, color: "var(--dusk)", fontWeight: 500 }}
+                      >
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: statusDotTone(draft.status),
+                            display: "inline-block",
+                          }}
+                        />
+                        <span>{formatDate(draft.created_at)}</span>
                       </div>
-
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                        {draft.title || "제목 없음"}
-                      </h3>
-
+                      <div
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                          marginBottom: 6,
+                          letterSpacing: "-0.015em",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {draft.title || "제목 없는 글"}
+                      </div>
                       {draft.subtitle && (
-                        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+                        <div
+                          className="line-clamp-2"
+                          style={{
+                            fontSize: 13,
+                            color: "var(--ink-soft)",
+                            lineHeight: 1.55,
+                            marginBottom: 12,
+                          }}
+                        >
                           {draft.subtitle}
-                        </p>
+                        </div>
                       )}
-
-                      <div className="flex items-center gap-4 text-xs text-gray-400">
+                      <div
+                        className="flex items-center gap-4 flex-wrap"
+                        style={{ fontSize: 12, color: "var(--dusk)" }}
+                      >
                         <span>
                           {draft.word_count?.toLocaleString() || 0}단어
                         </span>
-                        {draft.char_count && (
+                        {draft.char_count != null && (
                           <span>{draft.char_count.toLocaleString()}자</span>
                         )}
                         {draft.seo_metrics && (
-                          <span className="flex items-center gap-1 text-green-600">
-                            <BarChart3 className="w-3 h-3" />
+                          <span
+                            className="flex items-center gap-1"
+                            style={{ color: "var(--forest)" }}
+                          >
+                            <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
                             SEO {draft.seo_metrics.overall_score}점
+                          </span>
+                        )}
+                        {draft.resources && draft.resources.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <LinkIcon className="w-3 h-3" strokeWidth={1.5} />
+                            자료 {draft.resources.length}개
                           </span>
                         )}
                       </div>
                     </div>
-
-                    {/* Right: Resources & Keywords Card */}
-                    <div className="flex-shrink-0 w-64">
-                      <div className="bg-gray-50 rounded-lg p-3 space-y-3 border border-gray-100">
-                        {/* Resources */}
-                        {draft.resources && draft.resources.length > 0 && (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                              <LinkIcon className="w-3 h-3" />
-                              사용된 자료
-                            </div>
-                            <div className="space-y-1">
-                              {draft.resources.map((r) => (
-                                <div
-                                  key={r.id}
-                                  className="text-xs text-gray-600 truncate"
-                                >
-                                  •{" "}
-                                  {r.source_type === "url"
-                                    ? r.title || r.source_url || "URL"
-                                    : r.file_name || "파일"}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Keywords */}
-                        {/* {draft.primary_keywords &&
-                          draft.primary_keywords.length > 0 && (
-                            <div className="space-y-1.5 pt-2 border-t border-gray-200">
-                              <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                                <Tag className="w-3 h-3" />
-                                핵심 키워드
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                {draft.primary_keywords.map((keyword, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-2 py-0.5 bg-violet-50 text-violet-700 text-xs rounded-full font-medium"
-                                  >
-                                    {keyword}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )} */}
-
-                        {/* Empty State */}
-                        {(!draft.resources || draft.resources.length === 0) &&
-                          (!draft.primary_keywords ||
-                            draft.primary_keywords.length === 0) && (
-                            <div className="text-xs text-gray-400 text-center py-2">
-                              자료 정보 없음
-                            </div>
-                          )}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="flex flex-col items-end gap-3 shrink-0">
+                      <StatusTag status={draft.status} />
                       <button
                         onClick={(e) => handleDelete(draft.id, e)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{
+                          padding: 6,
+                          borderRadius: "var(--r-sm)",
+                          color: "var(--dusk)",
+                        }}
                         title="삭제"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "var(--warm)";
+                          e.currentTarget.style.color = "#7a4f1e";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "var(--dusk)";
+                        }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                       </button>
-                      <div className="p-2 text-gray-400 group-hover:text-blue-600 transition-colors">
-                        <ChevronRight className="w-5 h-5" />
-                      </div>
                     </div>
                   </div>
                 </motion.div>

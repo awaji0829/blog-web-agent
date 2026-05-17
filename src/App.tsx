@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/shared/Layout';
 import { AuthGate } from '@/components/shared/AuthGate';
 import { WorkflowContainer } from '@/features/workflow/WorkflowContainer';
+import { DashboardScreen } from '@/features/dashboard/DashboardScreen';
 import { SavedDraftsScreen } from '@/features/drafts/SavedDraftsScreen';
 import { DraftViewScreen } from '@/features/drafts/DraftViewScreen';
 import { PromptManagerScreen } from '@/features/prompts/PromptManagerScreen';
@@ -19,6 +20,7 @@ function AppContent() {
       <Layout>
         <Routes>
           <Route path="/" element={<WorkflowContainer />} />
+          <Route path="/dashboard" element={<DashboardScreen />} />
           <Route path="/saved" element={
             <SavedDraftsScreen onNewDraft={handleNewDraft} />
           } />

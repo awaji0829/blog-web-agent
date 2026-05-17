@@ -1,5 +1,13 @@
-import { useState } from 'react';
-import { Link as LinkIcon, FileText, Plus, X, UploadCloud, Tag, Users } from 'lucide-react';
+import { useState } from "react";
+import {
+  Link as LinkIcon,
+  FileText,
+  Plus,
+  X,
+  UploadCloud,
+  Tag,
+  Users,
+} from "lucide-react";
 
 interface ResourceInputData {
   urls: string[];
@@ -14,38 +22,69 @@ interface ResourceInputProps {
 }
 
 const TARGET_AUDIENCE_OPTIONS = [
-  { value: 'general', label: '일반 대중' },
-  { value: 'expert', label: '업계 전문가' },
-  { value: 'executive', label: '경영진 / 의사결정자' },
-  { value: 'beginner', label: '학생 / 입문자' },
+  { value: "general", label: "일반 대중" },
+  { value: "expert", label: "업계 전문가" },
+  { value: "executive", label: "경영진 / 의사결정자" },
+  { value: "beginner", label: "학생 / 입문자" },
 ];
 
+function SectionCard({
+  icon,
+  title,
+  required,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="sage-card flex flex-col gap-4">
+      <div
+        className="flex items-center gap-2 pb-3"
+        style={{ borderBottom: "1px solid var(--border-sage)" }}
+      >
+        <div className="sage-icon-tile" style={{ width: 32, height: 32 }}>
+          {icon}
+        </div>
+        <span style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>
+          {title}
+        </span>
+        <span
+          className={`sage-tag ${required ? "sage-tag--brand" : "sage-tag--neutral"}`}
+        >
+          {required ? "필수" : "선택"}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function ResourceInput({ onStartAnalysis, error }: ResourceInputProps) {
-  const [urls, setUrls] = useState<string[]>(['']);
+  const [urls, setUrls] = useState<string[]>([""]);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-  const [keywords, setKeywords] = useState('');
+  const [keywords, setKeywords] = useState("");
   const [selectedAudiences, setSelectedAudiences] = useState<string[]>([]);
-  const [customAudience, setCustomAudience] = useState('');
+  const [customAudience, setCustomAudience] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
 
   const handleStartAnalysis = () => {
-    const targetAudience = selectedAudiences.length > 0
-      ? selectedAudiences.join(', ')
-      : '';
-
     onStartAnalysis({
-      urls: urls.filter(u => u.trim() !== ''),
+      urls: urls.filter((u) => u.trim() !== ""),
       files: uploadedFiles,
       keywords,
-      targetAudience,
+      targetAudience:
+        selectedAudiences.length > 0 ? selectedAudiences.join(", ") : "",
     });
   };
 
   const toggleAudience = (value: string) => {
-    setSelectedAudiences(prev =>
+    setSelectedAudiences((prev) =>
       prev.includes(value)
-        ? prev.filter(a => a !== value)
-        : [...prev, value]
+        ? prev.filter((a) => a !== value)
+        : [...prev, value],
     );
   };
 
@@ -53,18 +92,15 @@ export function ResourceInput({ onStartAnalysis, error }: ResourceInputProps) {
     const trimmed = customAudience.trim();
     if (trimmed && !selectedAudiences.includes(trimmed)) {
       setSelectedAudiences([...selectedAudiences, trimmed]);
-      setCustomAudience('');
+      setCustomAudience("");
       setShowCustomInput(false);
     }
   };
 
-  const removeAudience = (audience: string) => {
-    setSelectedAudiences(prev => prev.filter(a => a !== audience));
-  };
+  const removeAudience = (audience: string) =>
+    setSelectedAudiences((prev) => prev.filter((a) => a !== audience));
 
-  const addUrlInput = () => {
-    setUrls([...urls, '']);
-  };
+  const addUrlInput = () => setUrls([...urls, ""]);
 
   const updateUrl = (index: number, value: string) => {
     const newUrls = [...urls];
@@ -73,177 +109,231 @@ export function ResourceInput({ onStartAnalysis, error }: ResourceInputProps) {
   };
 
   const removeUrl = (index: number) => {
-    if (urls.length > 1) {
-      const newUrls = urls.filter((_, i) => i !== index);
-      setUrls(newUrls);
-    }
+    if (urls.length > 1) setUrls(urls.filter((_, i) => i !== index));
   };
 
   const handleFileUpload = () => {
-    // Mock file upload
     const mockFiles = ["company_report_2024.pdf", "market_analysis.docx"];
-    setUploadedFiles(prev => [...prev, ...mockFiles]);
+    setUploadedFiles((prev) => [...prev, ...mockFiles]);
   };
 
-  const hasResources = urls.some(u => u.trim() !== '') || uploadedFiles.length > 0;
+  const hasResources =
+    urls.some((u) => u.trim() !== "") || uploadedFiles.length > 0;
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-4 space-y-6">
-      {/* Hero Section */}
-      <div className="text-center space-y-2 mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-          새로운 콘텐츠를 시작해 보세요
-        </h1>
-        <p className="text-lg text-gray-500">
-          참고할 링크나 파일을 넣으면 AI가 인사이트를 추출합니다.
+    <div
+      className="max-w-3xl mx-auto flex flex-col gap-5"
+      style={{ padding: "48px 16px" }}
+    >
+      {/* Hero */}
+      <div className="text-center mb-2">
+        <div className="sage-eyebrow mb-3">새 글</div>
+        <h1 style={{ color: "var(--ink)" }}>새로운 글을 시작해 볼까요</h1>
+        <p
+          className="mx-auto"
+          style={{
+            fontSize: 15,
+            color: "var(--ink-soft)",
+            marginTop: 10,
+            lineHeight: 1.65,
+            maxWidth: "52ch",
+          }}
+        >
+          참고할 링크나 파일을 넣으면 핵심 인사이트를 찾아 드려요 · 약 30초 소요
         </p>
       </div>
 
-      {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-              !
+        <div
+          className="flex items-start gap-3"
+          style={{
+            background: "var(--warm)",
+            borderRadius: "var(--r-md)",
+            padding: "14px 16px",
+          }}
+        >
+          <div
+            className="flex-shrink-0 flex items-center justify-center"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: "50%",
+              background: "var(--clay)",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            !
+          </div>
+          <div className="flex-1">
+            <div
+              style={{ fontWeight: 500, color: "#7a4f1e", marginBottom: 4 }}
+            >
+              자료를 가져오지 못했어요
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-red-900 mb-2">URL 수집 실패</h3>
-              <p className="text-sm text-red-800 whitespace-pre-line leading-relaxed">
-                {error}
-              </p>
-            </div>
+            <p
+              className="whitespace-pre-line"
+              style={{ fontSize: 13, color: "#7a4f1e", lineHeight: 1.55 }}
+            >
+              {error}
+            </p>
           </div>
         </div>
       )}
 
-      {/* Resources Section - 필수 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-        <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-          <span className="text-base font-bold text-gray-900">참고 자료</span>
-          <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">필수</span>
-        </div>
-
-        {/* URL Input */}
-        <div className="space-y-3">
-          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <LinkIcon className="w-4 h-4 text-blue-500" />
+      {/* Resources — required */}
+      <SectionCard
+        icon={<LinkIcon className="w-4 h-4" strokeWidth={1.5} />}
+        title="참고 자료"
+        required
+      >
+        <div className="flex flex-col gap-3">
+          <label style={{ color: "var(--ink)", fontWeight: 500 }}>
             URL 링크
           </label>
-          <div className="space-y-3">
-              {urls.map((url, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={url}
-                    onChange={(e) => updateUrl(index, e.target.value)}
-                    placeholder="참고할 URL 링크를 입력하세요"
-                    className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-                  />
-                  {urls.length > 1 && (
-                    <button onClick={() => removeUrl(index)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            <button
-              onClick={addUrlInput}
-              className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 pl-1"
-            >
-              <Plus className="w-3 h-3" /> 링크 추가하기
-            </button>
-          </div>
+          {urls.map((url, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={url}
+                onChange={(e) => updateUrl(index, e.target.value)}
+                placeholder="참고할 URL을 입력해 주세요"
+                className="sage-input"
+              />
+              {urls.length > 1 && (
+                <button
+                  onClick={() => removeUrl(index)}
+                  className="p-2 flex-shrink-0"
+                  style={{ color: "var(--dusk)" }}
+                >
+                  <X className="w-4 h-4" strokeWidth={1.5} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={addUrlInput}
+            className="flex items-center gap-1 self-start"
+            style={{ fontSize: 13, color: "var(--forest)", fontWeight: 500 }}
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={1.5} /> 링크 추가
+          </button>
         </div>
 
-        {/* File Upload */}
-        <div className="space-y-3 pt-2">
-          <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-orange-500" />
+        <div className="flex flex-col gap-3 pt-1">
+          <label style={{ color: "var(--ink)", fontWeight: 500 }}>
             파일 업로드
           </label>
+          <div
+            onClick={handleFileUpload}
+            className="flex flex-col items-center justify-center cursor-pointer"
+            style={{
+              border: "1px dashed var(--border-deep)",
+              borderRadius: "var(--r-md)",
+              padding: 24,
+              transition: "background var(--dur-base) var(--ease)",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "var(--leaf)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "transparent")
+            }
+          >
             <div
-              onClick={handleFileUpload}
-              className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
+              className="sage-icon-tile mb-2"
+              style={{ width: 40, height: 40 }}
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                <UploadCloud className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
-              </div>
-              <span className="text-gray-500 font-medium text-sm group-hover:text-blue-600">PDF, DOCX 파일을 업로드하세요</span>
-              <span className="text-xs text-gray-400 mt-1">클릭 또는 드래그 앤 드롭</span>
+              <UploadCloud className="w-5 h-5" strokeWidth={1.5} />
             </div>
+            <span
+              style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}
+            >
+              PDF, DOCX 파일을 올려 주세요
+            </span>
+            <span
+              style={{ fontSize: 12, color: "var(--dusk)", marginTop: 4 }}
+            >
+              클릭하거나 끌어다 놓을 수 있어요
+            </span>
+          </div>
 
-          {/* Uploaded Files */}
           {uploadedFiles.length > 0 && (
-             <div className="flex flex-wrap gap-2 mt-2">
-               {uploadedFiles.map((file, i) => (
-                 <div key={i} className="bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 flex items-center gap-2">
-                   <FileText className="w-3 h-3" />
-                   {file}
-                   <button onClick={(e) => { e.stopPropagation(); setUploadedFiles(prev => prev.filter((_, idx) => idx !== i)); }} className="hover:text-red-500">
-                     <X className="w-3 h-3" />
-                   </button>
-                 </div>
-               ))}
-             </div>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {uploadedFiles.map((file, i) => (
+                <div
+                  key={i}
+                  className="sage-tag sage-tag--neutral"
+                  style={{ gap: 6 }}
+                >
+                  <FileText className="w-3 h-3" strokeWidth={1.5} />
+                  {file}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUploadedFiles((prev) =>
+                        prev.filter((_, idx) => idx !== i),
+                      );
+                    }}
+                    style={{ color: "var(--dusk)" }}
+                  >
+                    <X className="w-3 h-3" strokeWidth={1.5} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-      </div>
+      </SectionCard>
 
-      {/* Keywords Section - 선택 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
-        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <Tag className="w-4 h-4 text-violet-500" />
-          주제 · 키워드
-          <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded">선택</span>
-        </label>
+      {/* Keywords — optional */}
+      <SectionCard
+        icon={<Tag className="w-4 h-4" strokeWidth={1.5} />}
+        title="주제 · 키워드"
+      >
         <input
           type="text"
           value={keywords}
           onChange={(e) => setKeywords(e.target.value)}
           placeholder="예: SaaS 마케팅, B2B, 성장 전략"
-          className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
+          className="sage-input"
         />
-        <p className="text-xs text-gray-400 pl-1">여러 키워드는 쉼표로 구분해 주세요</p>
-      </div>
+        <p style={{ fontSize: 12, color: "var(--dusk)" }}>
+          여러 키워드는 쉼표로 구분해 주세요
+        </p>
+      </SectionCard>
 
-      {/* Target Audience Section - 선택 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <Users className="w-4 h-4 text-emerald-500" />
-          타겟 독자
-          <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded">선택</span>
-        </label>
-
-        {/* Audience Options */}
+      {/* Target audience — optional */}
+      <SectionCard
+        icon={<Users className="w-4 h-4" strokeWidth={1.5} />}
+        title="타겟 독자"
+      >
         <div className="flex flex-wrap gap-2">
-          {TARGET_AUDIENCE_OPTIONS.map(option => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => toggleAudience(option.label)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                selectedAudiences.includes(option.label)
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+          {TARGET_AUDIENCE_OPTIONS.map((option) => {
+            const active = selectedAudiences.includes(option.label);
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => toggleAudience(option.label)}
+                className={`sage-tag ${active ? "sage-tag--active" : "sage-tag--neutral"}`}
+                style={{ cursor: "pointer", padding: "7px 14px", fontSize: 13 }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
           <button
             type="button"
             onClick={() => setShowCustomInput(!showCustomInput)}
-            className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-              showCustomInput
-                ? 'bg-emerald-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`sage-tag ${showCustomInput ? "sage-tag--active" : "sage-tag--neutral"}`}
+            style={{ cursor: "pointer", padding: "7px 14px", fontSize: 13 }}
           >
             직접 입력
           </button>
         </div>
 
-        {/* Custom Audience Input */}
         {showCustomInput && (
           <div className="flex gap-2">
             <input
@@ -251,59 +341,63 @@ export function ResourceInput({ onStartAnalysis, error }: ResourceInputProps) {
               value={customAudience}
               onChange={(e) => setCustomAudience(e.target.value)}
               onKeyPress={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   addCustomAudience();
                 }
               }}
               placeholder="예: 스타트업 마케터, 30대 직장인"
-              className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
+              className="sage-input"
             />
             <button
               type="button"
               onClick={addCustomAudience}
-              className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+              className="sage-btn sage-btn--secondary"
             >
               추가
             </button>
           </div>
         )}
 
-        {/* Selected Audiences Tags */}
         {selectedAudiences.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1">
             {selectedAudiences.map((audience) => (
               <span
                 key={audience}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium border border-emerald-200"
+                className="sage-tag sage-tag--brand"
+                style={{ gap: 6, padding: "6px 12px", fontSize: 13 }}
               >
                 {audience}
                 <button
                   type="button"
                   onClick={() => removeAudience(audience)}
-                  className="hover:bg-emerald-100 rounded-full p-0.5 transition-colors"
+                  style={{ display: "inline-flex" }}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </button>
               </span>
             ))}
           </div>
         )}
-      </div>
+      </SectionCard>
 
-      {/* Start Button */}
-      <div className="pt-2">
+      {/* Start — the single primary action */}
+      <div className="pt-1">
         <button
           onClick={handleStartAnalysis}
           disabled={!hasResources}
-          className={`w-full text-lg font-bold py-4 rounded-xl shadow-lg transition-all active:translate-y-0
-            ${hasResources
-              ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl hover:-translate-y-0.5'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-            }`}
+          className="sage-btn sage-btn--primary sage-btn--lg w-full"
         >
-          분석 시작하기
+          분석 시작
         </button>
+        {!hasResources && (
+          <p
+            className="text-center"
+            style={{ fontSize: 12, color: "var(--dusk)", marginTop: 8 }}
+          >
+            링크나 파일을 하나 이상 넣으면 시작할 수 있어요
+          </p>
+        )}
       </div>
     </div>
   );
